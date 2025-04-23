@@ -3,8 +3,10 @@ export interface GroupHomeInsert {
   address: string;
   phone: string;
   image_url?: string;
+  cloudinary_public_id?: string;
   status: string;
-  managerName?: number;
+  managerName?: string;
+  supervisorName?: string;
   type?: string;
   notes?: string;
 }

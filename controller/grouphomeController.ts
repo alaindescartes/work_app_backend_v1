@@ -3,7 +3,6 @@ import { Request, Response, NextFunction } from 'express';
 import { addGroupHome, getGroupHomes } from '../models/grouphomeModel.js';
 import { GroupHomeInsert } from '../models/interfaces/grouphome.interface.js';
 import { uploadToCloudinary } from '../utils/cloudinary.js';
-import * as buffer from 'buffer';
 
 export async function addGroupHomeData(req: Request, res: Response, next: NextFunction) {
   //interface for a new groupHome
@@ -29,28 +28,31 @@ export async function addGroupHomeData(req: Request, res: Response, next: NextFu
     ) {
       return next(new AppError('name, address, status, phone nbr fields must be provided', 400));
     }
-    console.log('File name:', req.file?.originalname);
-    console.log('File buffer:', req.file?.buffer); // if uploading to Cloudinary
-    console.log('Text fields:', req.body); // name, address, etc.
+
+    const groupHome: GroupHomeInsert = {
+      ...groupHomeData,
+    };
 
     //uploading data to cloudinary
     if (req.file?.buffer) {
       try {
-        const res = await uploadToCloudinary(
+        const result = await uploadToCloudinary(
           req.file!.buffer,
           `${groupHomeData.name}/groupHome_images`
         );
+        groupHome.cloudinary_public_id = result.public_id;
+        groupHome.image_url = result.secure_url;
+        console.log(result);
       } catch (err) {
         console.log(err, 'cannot upload the file to cloudinary');
       }
     }
 
-    //const newGroupHome = await addGroupHome(req.app.get("db"), groupHomeData);
-    res.status(200).json({ message: 'good' });
-    // res.status(201).json({
-    //   message: "Group Home added successfully",
-    //   groupHome: newGroupHome,
-    // });
+    const GroupHomeToAdd = await addGroupHome(req.app.get('db'), groupHome);
+    res.status(201).json({
+      message: 'Group Home added successfully',
+      groupHome: groupHome,
+    });
   } catch (error: any) {
     return next(new AppError(error.message || 'could not add group home', 404));
   }
@@ -63,6 +65,7 @@ export async function getAllGrouphomes(req: Request, res: Response, next: NextFu
     if (grouphomes.length === 0) {
       return next(new AppError('there are no grouphomes found', 404));
     }
+    console.log(grouphomes);
     res.status(200).json({ groupHomes: grouphomes });
   } catch (error: any) {
     return next(
