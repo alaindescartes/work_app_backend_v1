@@ -1,0 +1,50 @@
+# Node modules
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# dotenv environment variables
+.env
+.env.local
+.env.*.local
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Build directories
+dist/
+build/
+tmp/
+temp/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Coverage
+coverage/
+
+# PM2 logs and dumps
+pids/
+*.pid
+*.seed
+*.pid.lock
+dump.rdb
+
+# Heroku
+*.orig
+
+# TypeScript
+*.tsbuildinfo
+
+# Optional: if you're using Docker
+docker-compose.override.yml
