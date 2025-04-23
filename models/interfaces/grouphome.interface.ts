@@ -4,7 +4,7 @@ export interface GroupHomeInsert {
   phone: string;
   image_url?: string;
   status: string;
-  managerId?: number;
+  managerName?: number;
   type?: string;
   notes?: string;
 }

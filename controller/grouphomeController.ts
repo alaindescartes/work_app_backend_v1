@@ -8,8 +8,21 @@ export async function addGroupHomeData(
   res: Response,
   next: NextFunction
 ) {
+  //interface for a new groupHome
+  interface newGroupHome {
+    name: string;
+    address: string;
+    phone: string;
+    status: string;
+    managerName?: string;
+    supervisorName?: string;
+    type?: string;
+    notes?: string;
+  }
+
   try {
-    const groupHomeData: GroupHomeInsert = req.body;
+    const groupHomeData: newGroupHome = req.body;
+    console.log(groupHomeData);
     if (
       !groupHomeData.name ||
       !groupHomeData.address ||
@@ -23,13 +36,15 @@ export async function addGroupHomeData(
         )
       );
     }
-
-    const newGroupHome = await addGroupHome(req.app.get("db"), groupHomeData);
-
-    res.status(201).json({
-      message: "Group Home added successfully",
-      groupHome: newGroupHome,
-    });
+    console.log("File name:", req.file?.originalname);
+    console.log("File buffer:", req.file?.buffer); // if uploading to Cloudinary
+    console.log("Text fields:", req.body); // name, address, etc.
+    //const newGroupHome = await addGroupHome(req.app.get("db"), groupHomeData);
+    res.status(200).json({message:"good"})
+    // res.status(201).json({
+    //   message: "Group Home added successfully",
+    //   groupHome: newGroupHome,
+    // });
   } catch (error: any) {
     return next(new AppError(error.message || "could not add group home", 404));
   }
