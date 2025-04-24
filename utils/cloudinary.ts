@@ -15,17 +15,20 @@ cloudinary.config(config);
  * @param buffer The image buffer (from multer memoryStorage)
  * @param subFolder The subfolder name inside the base folder
  * @param baseFolder (optional) A base folder name, default is "uploads"
+ * @param publicId (optional) The public ID to overwrite an existing image
  * @returns Cloudinary Upload response
  */
 export const uploadToCloudinary = (
   buffer: Buffer,
   subFolder: string,
-  baseFolder: string = 'uploads'
+  baseFolder: string = 'uploads',
+  publicId?: string
 ): Promise<UploadApiResponse> => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
         folder: `${baseFolder}/${subFolder}`,
+        ...(publicId ? { public_id: publicId, overwrite: true } : {}),
       },
       (error, result) => {
         if (error || !result) {

@@ -18,6 +18,10 @@ export function getGroupHomes(knex: Knex): Promise<GroupHomeFetch[]> {
   return knex('group_homes').select('*');
 }
 
+export function getSingleGroupHome(knex: Knex, homeId: string): Promise<GroupHomeFetch> {
+  return knex('group_homes').where({ id: homeId }).first();
+}
+
 export function deleteHome(knex: Knex, homeId: string): Promise<GroupHomeFetch> {
   return knex('group_homes')
     .where({ id: homeId })
