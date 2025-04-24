@@ -15,7 +15,7 @@ router.post('/add-grouphome', checkAuth, upload.single('image'), addGroupHomeDat
 router.get('/get-grouphomes', checkAuth, getAllGrouphomes);
 router.post('/delete-groupHome/:id', checkAuth, checkRole, deleteGroupHome);
 router.post(
-  '/edit-groupHome/:id/home',
+  '/edit-grouphome/:id/home',
   checkAuth,
   checkRole,
   upload.single('image'),

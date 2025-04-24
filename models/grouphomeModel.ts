@@ -11,7 +11,21 @@ export async function addGroupHome(
   return knex('group_homes')
     .insert(groupHomeData)
     .returning('*')
-    .then(rows => rows[0]);
+    .then((rows) => rows[0]);
+}
+export async function updateGroupHome(
+  knex: Knex,
+  homeId: string,
+  updates: Partial<GroupHomeInsert>
+): Promise<GroupHomeFetch> {
+  const exists = await knex.schema.hasTable('group_homes');
+  if (!exists) throw new Error("Table 'group_homes' does not exist.");
+
+  const rows = await knex('group_homes')
+    .where({ id: homeId })
+    .update({ ...updates })
+    .returning('*');
+  return rows[0];
 }
 
 export function getGroupHomes(knex: Knex): Promise<GroupHomeFetch[]> {
@@ -27,5 +41,5 @@ export function deleteHome(knex: Knex, homeId: string): Promise<GroupHomeFetch> 
     .where({ id: homeId })
     .del()
     .returning('*')
-    .then(rows => rows[0]);
+    .then((rows) => rows[0]);
 }

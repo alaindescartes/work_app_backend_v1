@@ -5,6 +5,7 @@ import {
   deleteHome,
   getGroupHomes,
   getSingleGroupHome,
+  updateGroupHome,
 } from '../models/grouphomeModel.js';
 import { GroupHomeInsert } from '../models/interfaces/grouphome.interface.js';
 import { uploadToCloudinary } from '../utils/cloudinary.js';
@@ -96,6 +97,7 @@ export async function deleteGroupHome(req: Request, res: Response, next: NextFun
 export async function editGroupHome(req: Request, res: Response, next: NextFunction) {
   const { id } = req.params;
   const edits: newGroupHome = req.body;
+  console.log('received', req.body);
   if (!id) {
     return next(new AppError('can not edit without a valid Id', 400));
   }
@@ -131,10 +133,10 @@ export async function editGroupHome(req: Request, res: Response, next: NextFunct
       }
     }
 
-    const GroupHomeToAdd = await addGroupHome(req.app.get('db'), groupHome);
+    const updatedGroupHome = await updateGroupHome(req.app.get('db'), id, groupHome);
     res.status(201).json({
       message: 'Group Home edited successfully',
-      groupHome: groupHome,
+      groupHome: updatedGroupHome,
     });
   } catch (error: any) {
     return next(new AppError(error.message || 'could not edit without a valid Id', 500));
@@ -151,7 +153,6 @@ export async function getIndividualGroupHome(req: Request, res: Response, next: 
     if (!home) {
       return next(new AppError('No group home found with that ID', 404));
     }
-    console.log('sending', home);
     res.status(200).json({ groupHome: home });
   } catch (error: any) {
     return next(new AppError(error.message || 'could not find home without a valid Id', 500));
