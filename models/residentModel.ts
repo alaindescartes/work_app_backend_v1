@@ -1,15 +1,23 @@
-import type { Knex } from "knex";
+import knex, { Knex } from 'knex';
 import {
+  ResidentDbInsert,
   ResidentFetch,
   ResidentInsert,
-} from "../models/interfaces/resident.interface.js";
+} from './interfaces/resident.interface.js';
 
-export function addResident(
+export async function addResident(
   knex: Knex,
-  residentData: ResidentInsert
-): Promise<ResidentFetch> {
-  return knex("residents")
-    .insert(residentData)
-    .returning("*")
-    .then((rows) => rows[0]);
+  residentData: ResidentDbInsert | ResidentDbInsert[]
+): Promise<ResidentFetch | ResidentFetch[]> {
+  const rows = await knex('residents').insert(residentData).returning('*');
+  return Array.isArray(residentData) ? rows : rows[0];
+}
+
+export function findResident(
+  knex: Knex,
+  firstName: string,
+  lastName: string,
+  dateOfBirth: string
+): Promise<ResidentFetch | undefined> {
+  return knex<ResidentFetch>('residents').where({ firstName, lastName, dateOfBirth }).first();
 }

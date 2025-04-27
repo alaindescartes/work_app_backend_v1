@@ -8,7 +8,7 @@ export interface ResidentInsert {
   admissionDate: string;
   status: string;
   image_url?: string;
-  public_url?: string;
+  public_id?: string;
   guardianId?: number;
   groupHomeId: number;
   marital_status: 'single' | 'married' | 'divorced' | 'widowed';
@@ -21,3 +21,7 @@ export interface ResidentInsert {
 export interface ResidentFetch extends ResidentInsert {
   id: number;
 }
+export type ResidentDbInsert = Omit<ResidentInsert, 'primaryDiagnosis' | 'allergies'> & {
+  primaryDiagnosis: string;
+  allergies: string;
+};

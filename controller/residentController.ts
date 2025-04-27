@@ -1,0 +1,62 @@
+import { AppError } from '../utils/appError.js';
+import { Request, Response, NextFunction } from 'express';
+import { ResidentFetch, ResidentInsert } from '../models/interfaces/resident.interface.js';
+import { addResident, findResident } from '../models/residentModel.js';
+import { uploadToCloudinary } from '../utils/cloudinary.js';
+import { getSingleGroupHome } from '../models/grouphomeModel.js';
+
+export async function addResidentData(req: Request, res: Response, next: NextFunction) {
+  let data = req.body;
+  try {
+    const resident: ResidentInsert = data;
+
+    if (!resident.firstName || !resident.lastName || !resident.dateOfBirth) {
+      return next(new AppError('Missing fields.', 400));
+    }
+
+    const residentExists = await findResident(
+      req.app.get('db'),
+      resident.firstName,
+      resident.lastName,
+      resident.dateOfBirth
+    );
+    if (residentExists) {
+      return next(new AppError('Resident already exists', 400));
+    }
+
+    //uploading data to cloudinary
+    if (req.file?.buffer) {
+      const residentGroupHome = await getSingleGroupHome(
+        req.app.get('db'),
+        resident.groupHomeId.toString()
+      );
+      try {
+        const result = await uploadToCloudinary(
+          req.file!.buffer,
+          `${residentGroupHome.name}/groupHome_images`
+        );
+        resident.public_id = result.public_id;
+        resident.image_url = result.secure_url;
+      } catch (err) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(err, 'cannot upload the file to cloudinary');
+        }
+      }
+    }
+
+    const { primaryDiagnosis, allergies, ...rest } = resident;
+    const dbResident = {
+      ...rest,
+      primaryDiagnosis: JSON.stringify(primaryDiagnosis ?? []),
+      allergies: JSON.stringify(allergies ?? []),
+    };
+
+    const addedResident = await addResident(req.app.get('db'), dbResident);
+    res.status(201).json({ message: 'Resident added successfully', resident: addedResident });
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      return next(new AppError(err.message || 'Could not add resident', 500));
+    }
+    return next(new AppError('Unknown error occurred while adding resident', 500));
+  }
+}
