@@ -7,10 +7,11 @@ export interface ResidentInsert {
   allergies: string[];
   admissionDate: string;
   status: string;
-  image_url: string;
+  image_url?: string;
+  public_url?: string;
   guardianId?: number;
   groupHomeId: number;
-  marital_status: "single" | "married" | "divorced" | "widowed";
+  marital_status: 'single' | 'married' | 'divorced' | 'widowed';
   healthcareNumber: string;
   phoneNumber?: string;
   isSelfGuardian: boolean;
