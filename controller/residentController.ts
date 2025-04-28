@@ -7,6 +7,7 @@ import { getSingleGroupHome } from '../models/grouphomeModel.js';
 
 export async function addResidentData(req: Request, res: Response, next: NextFunction) {
   let data = req.body;
+
   try {
     const resident: ResidentInsert = data;
 
@@ -62,7 +63,6 @@ export async function addResidentData(req: Request, res: Response, next: NextFun
 }
 
 export async function findResidentByGroupHome(req: Request, res: Response, next: NextFunction) {
-  console.log('received', req.params.groupHomeId);
   const { groupHomeId } = req.params;
   try {
     if (!groupHomeId) {
