@@ -1,7 +1,7 @@
 import { AppError } from '../utils/appError.js';
 import { Request, Response, NextFunction } from 'express';
 import { ResidentFetch, ResidentInsert } from '../models/interfaces/resident.interface.js';
-import { addResident, findResident } from '../models/residentModel.js';
+import findResidentByHome, { addResident, findResident } from '../models/residentModel.js';
 import { uploadToCloudinary } from '../utils/cloudinary.js';
 import { getSingleGroupHome } from '../models/grouphomeModel.js';
 
@@ -58,5 +58,31 @@ export async function addResidentData(req: Request, res: Response, next: NextFun
       return next(new AppError(err.message || 'Could not add resident', 500));
     }
     return next(new AppError('Unknown error occurred while adding resident', 500));
+  }
+}
+
+export async function findResidentByGroupHome(req: Request, res: Response, next: NextFunction) {
+  console.log('received', req.params.groupHomeId);
+  const { groupHomeId } = req.params;
+  try {
+    if (!groupHomeId) {
+      return next(new AppError('Provide valid home id', 400));
+    }
+
+    const residents: ResidentFetch[] = await findResidentByHome(
+      req.app.get('db'),
+      Number(groupHomeId)
+    );
+
+    if (residents.length === 0) {
+      res.status(200).json({ message: 'no resident found', residentsData: [] });
+    }
+
+    res.status(200).json({ message: 'success', residentsData: residents });
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      return next(new AppError(err.message || 'Could not find resident', 500));
+    }
+    return next(new AppError('Unknown error occurred while finding residents', 500));
   }
 }

@@ -21,3 +21,10 @@ export function findResident(
 ): Promise<ResidentFetch | undefined> {
   return knex<ResidentFetch>('residents').where({ firstName, lastName, dateOfBirth }).first();
 }
+
+export default function findResidentByHome(
+  knex: Knex,
+  homeId: number
+): Promise<ResidentFetch[] | []> {
+  return knex<ResidentFetch>('residents').where({ groupHomeId: homeId }).select('*');
+}
