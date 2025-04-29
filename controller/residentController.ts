@@ -1,9 +1,15 @@
 import { AppError } from '../utils/appError.js';
 import { Request, Response, NextFunction } from 'express';
 import { ResidentFetch, ResidentInsert } from '../models/interfaces/resident.interface.js';
-import findResidentByHome, { addResident, findResident } from '../models/residentModel.js';
+import {
+  findResidentByHome,
+  addResident,
+  findResident,
+  findResidentById,
+} from '../models/residentModel.js';
 import { uploadToCloudinary } from '../utils/cloudinary.js';
 import { getSingleGroupHome } from '../models/grouphomeModel.js';
+import cloudinary from '../utils/cloudinary.js';
 
 export async function addResidentData(req: Request, res: Response, next: NextFunction) {
   let data = req.body;
@@ -85,4 +91,31 @@ export async function findResidentByGroupHome(req: Request, res: Response, next:
     }
     return next(new AppError('Unknown error occurred while finding residents', 500));
   }
+}
+
+export async function deleteResident(req: Request, res: Response, next: NextFunction) {
+  const { clientId } = req.params;
+
+  try {
+    if (!clientId) {
+      return next(new AppError('Malformed url request.', 400));
+    }
+
+    const foundClient = await findResidentById(req.app.get('db'), Number(clientId));
+    if (!foundClient) {
+      return next(new AppError('Could not find resident', 404));
+    }
+
+    //deleting images from cloudinary
+    if (foundClient.public_id) {
+      try {
+        const cloudinaryResult = await cloudinary.uploader.destroy(`${foundClient.public_id}`);
+      } catch (err: unknown) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('Error deleting from Cloudinary:', err);
+        }
+        //TODO:log errors to a login service
+      }
+    }
+  } catch (err: unknown) {}
 }

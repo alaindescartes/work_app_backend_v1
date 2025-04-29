@@ -22,9 +22,22 @@ export function findResident(
   return knex<ResidentFetch>('residents').where({ firstName, lastName, dateOfBirth }).first();
 }
 
-export default function findResidentByHome(
-  knex: Knex,
-  homeId: number
-): Promise<ResidentFetch[] | []> {
+export function findResidentById(knex: Knex, clientId: number): Promise<ResidentFetch | undefined> {
+  return knex<ResidentFetch>('residents').where({ id: clientId }).first();
+}
+
+export function findResidentByHome(knex: Knex, homeId: number): Promise<ResidentFetch[] | []> {
   return knex<ResidentFetch>('residents').where({ groupHomeId: homeId }).select('*');
+}
+
+export async function deleteClient(
+  knex: Knex,
+  clientId: number
+): Promise<ResidentFetch | undefined> {
+  const [deletedResident] = await knex<ResidentFetch>('residents')
+    .where({ id: clientId })
+    .del()
+    .returning('*');
+
+  return deletedResident;
 }
