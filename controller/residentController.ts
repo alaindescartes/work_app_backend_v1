@@ -6,6 +6,7 @@ import {
   addResident,
   findResident,
   findResidentById,
+  deleteClient,
 } from '../models/residentModel.js';
 import { uploadToCloudinary } from '../utils/cloudinary.js';
 import { getSingleGroupHome } from '../models/grouphomeModel.js';
@@ -95,12 +96,10 @@ export async function findResidentByGroupHome(req: Request, res: Response, next:
 
 export async function deleteResident(req: Request, res: Response, next: NextFunction) {
   const { clientId } = req.params;
-
+  if (!clientId) {
+    return next(new AppError('Malformed url request.', 400));
+  }
   try {
-    if (!clientId) {
-      return next(new AppError('Malformed url request.', 400));
-    }
-
     const foundClient = await findResidentById(req.app.get('db'), Number(clientId));
     if (!foundClient) {
       return next(new AppError('Could not find resident', 404));
@@ -117,5 +116,10 @@ export async function deleteResident(req: Request, res: Response, next: NextFunc
         //TODO:log errors to a login service
       }
     }
-  } catch (err: unknown) {}
+
+    const deletedResident = await deleteClient(req.app.get('db'), Number(clientId));
+    res.status(200).json({ message: 'Resident deleted successfully', resident: deletedResident });
+  } catch (err: any) {
+    return next(new AppError(err.message || 'Unknown error occurred while deleting resident', 500));
+  }
 }
