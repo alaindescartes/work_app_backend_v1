@@ -17,6 +17,16 @@ import { uploadToCloudinary } from '../utils/cloudinary.js';
 import { getSingleGroupHome } from '../models/grouphomeModel.js';
 import cloudinary from '../utils/cloudinary.js';
 
+/**
+ * Add a new resident to the system.
+ * Validates required fields, checks for duplicates,
+ * uploads image to Cloudinary if provided,
+ * formats data, and inserts into the database.
+ *
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next middleware function
+ */
 export async function addResidentData(req: Request, res: Response, next: NextFunction) {
   let data = req.body;
 
@@ -37,7 +47,7 @@ export async function addResidentData(req: Request, res: Response, next: NextFun
       return next(new AppError('Resident already exists', 400));
     }
 
-    //uploading data to cloudinary
+    // Upload image to Cloudinary if a file is provided
     if (req.file?.buffer) {
       const residentGroupHome = await getSingleGroupHome(
         req.app.get('db'),
@@ -57,6 +67,7 @@ export async function addResidentData(req: Request, res: Response, next: NextFun
       }
     }
 
+    // Format resident data for database insertion
     const { primaryDiagnosis, allergies, ...rest } = resident;
     const dbResident = {
       ...rest,
@@ -74,13 +85,23 @@ export async function addResidentData(req: Request, res: Response, next: NextFun
   }
 }
 
+/**
+ * Retrieve all residents assigned to a specific group home.
+ * Validates the groupHomeId parameter and queries the database.
+ *
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next middleware function
+ */
 export async function findResidentByGroupHome(req: Request, res: Response, next: NextFunction) {
   const { groupHomeId } = req.params;
   try {
+    // Validate groupHomeId parameter
     if (!groupHomeId) {
       return next(new AppError('Provide valid home id', 400));
     }
 
+    // Query database for residents by groupHomeId
     const residents: ResidentFetch[] = await findResidentByHome(
       req.app.get('db'),
       Number(groupHomeId)
@@ -99,8 +120,18 @@ export async function findResidentByGroupHome(req: Request, res: Response, next:
   }
 }
 
+/**
+ * Delete a resident record along with associated image from Cloudinary.
+ * Validates clientId, deletes image from Cloudinary if exists,
+ * and removes resident record from the database.
+ *
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next middleware function
+ */
 export async function deleteResident(req: Request, res: Response, next: NextFunction) {
   const { clientId } = req.params;
+  // Validate clientId parameter
   if (!clientId) {
     return next(new AppError('Malformed url request.', 400));
   }
@@ -110,7 +141,7 @@ export async function deleteResident(req: Request, res: Response, next: NextFunc
       return next(new AppError('Could not find resident', 404));
     }
 
-    //deleting images from cloudinary
+    // Attempt to delete image from Cloudinary if public_id exists
     if (foundClient.public_id) {
       try {
         const cloudinaryResult = await cloudinary.uploader.destroy(`${foundClient.public_id}`);
@@ -122,6 +153,7 @@ export async function deleteResident(req: Request, res: Response, next: NextFunc
       }
     }
 
+    // Delete resident record from database
     const deletedResident = await deleteClient(req.app.get('db'), Number(clientId));
     res.status(200).json({ message: 'Resident deleted successfully', resident: deletedResident });
   } catch (err: any) {
@@ -129,11 +161,52 @@ export async function deleteResident(req: Request, res: Response, next: NextFunc
   }
 }
 
+/**
+ * Fetch a single resident's detailed information by their ID.
+ * Validates clientId and fetches the resident record.
+ *
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next middleware function
+ */
+export async function getSingleClient(req: Request, res: Response, next: NextFunction) {
+  const { clientId } = req.params;
+  // Validate clientId parameter and fetch record
+  if (!clientId) {
+    return next(new AppError('Malformed url request.', 400));
+  }
+  try {
+    const foundClient = await findResidentById(req.app.get('db'), Number(clientId));
+    if (!foundClient) {
+      return next(new AppError('Could not find resident', 404));
+    }
+    res.status(200).json({ message: 'Client found', client: foundClient });
+  } catch (err: any) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Error getting clients:', err);
+      //TODO:log errors to a login service
+    }
+    return next(new AppError(err.message || 'Unknown error occurred while getSingleClient', 500));
+  }
+}
+
+/**
+ * Edit an existing resident's data in the database.
+ * Validates clientId, finds the resident record,
+ * handles image replacement via Cloudinary if a new file is provided,
+ * identifies and applies only modified fields,
+ * normalizes array fields, and commits updates.
+ *
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next middleware function
+ */
 export async function editResident(req: Request, res: Response, next: NextFunction) {
   const { clientId } = req.params;
   const residentData: ResidentFetch = req.body;
 
-  console.log(residentData);
+  console.log('recieved:', residentData);
+  // Validate clientId and find resident record
   if (!clientId) {
     return next(new AppError('Malformed url request.', 400));
   }
@@ -147,6 +220,27 @@ export async function editResident(req: Request, res: Response, next: NextFuncti
     type ResidentUpdatePayload = Partial<Record<keyof ResidentFetch, any>>;
     const updatedFields: ResidentUpdatePayload = {};
 
+    // Handle image replacement via Cloudinary if a new file is provided
+    if (req.file?.buffer) {
+      const residentGroupHome = await getSingleGroupHome(
+        req.app.get('db'),
+        clientToEdit.groupHomeId.toString()
+      );
+      try {
+        const result = await uploadToCloudinary(
+          req.file!.buffer,
+          `${residentGroupHome.name}/groupHome_images`
+        );
+        updatedFields.public_id = result.public_id;
+        updatedFields.image_url = result.secure_url;
+      } catch (err) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(err, 'cannot upload the file to cloudinary');
+        }
+      }
+    }
+
+    // Identify and apply only modified fields to be updated
     for (const key in residentData) {
       if (
         Object.prototype.hasOwnProperty.call(residentData, key) &&
@@ -156,10 +250,16 @@ export async function editResident(req: Request, res: Response, next: NextFuncti
       }
     }
 
+    // Normalize fields that are expected to be arrays before storing
     function toStringArray(value: unknown): string[] {
       if (Array.isArray(value)) return value;
       if (typeof value === 'string' && value.trim() !== '') {
-        return value.split(',').map((s) => s.trim());
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : value.split(',').map((s) => s.trim());
+        } catch {
+          return value.split(',').map((s) => s.trim());
+        }
       }
       return [];
     }
@@ -177,6 +277,7 @@ export async function editResident(req: Request, res: Response, next: NextFuncti
       res.status(200).json({ message: 'No changes detected.' });
       return;
     }
+    // Commit updates to the database
     const editedClient = await updateResidentById(
       req.app.get('db'),
       Number(clientId),
