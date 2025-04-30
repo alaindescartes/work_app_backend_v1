@@ -25,3 +25,4 @@ export type ResidentDbInsert = Omit<ResidentInsert, 'primaryDiagnosis' | 'allerg
   primaryDiagnosis: string;
   allergies: string;
 };
+export type ResidentDbRow = ResidentDbInsert & { id: number };

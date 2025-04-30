@@ -1,12 +1,17 @@
 import { AppError } from '../utils/appError.js';
 import { Request, Response, NextFunction } from 'express';
-import { ResidentFetch, ResidentInsert } from '../models/interfaces/resident.interface.js';
+import {
+  ResidentDbInsert,
+  ResidentFetch,
+  ResidentInsert,
+} from '../models/interfaces/resident.interface.js';
 import {
   findResidentByHome,
   addResident,
   findResident,
   findResidentById,
   deleteClient,
+  updateResidentById,
 } from '../models/residentModel.js';
 import { uploadToCloudinary } from '../utils/cloudinary.js';
 import { getSingleGroupHome } from '../models/grouphomeModel.js';
@@ -120,6 +125,68 @@ export async function deleteResident(req: Request, res: Response, next: NextFunc
     const deletedResident = await deleteClient(req.app.get('db'), Number(clientId));
     res.status(200).json({ message: 'Resident deleted successfully', resident: deletedResident });
   } catch (err: any) {
+    return next(new AppError(err.message || 'Unknown error occurred while deleting resident', 500));
+  }
+}
+
+export async function editResident(req: Request, res: Response, next: NextFunction) {
+  const { clientId } = req.params;
+  const residentData: ResidentFetch = req.body;
+
+  console.log(residentData);
+  if (!clientId) {
+    return next(new AppError('Malformed url request.', 400));
+  }
+
+  try {
+    const clientToEdit = await findResidentById(req.app.get('db'), Number(clientId));
+    if (!clientToEdit) {
+      return next(new AppError('Could not find resident', 404));
+    }
+
+    type ResidentUpdatePayload = Partial<Record<keyof ResidentFetch, any>>;
+    const updatedFields: ResidentUpdatePayload = {};
+
+    for (const key in residentData) {
+      if (
+        Object.prototype.hasOwnProperty.call(residentData, key) &&
+        residentData[key as keyof ResidentFetch] !== clientToEdit[key as keyof ResidentFetch]
+      ) {
+        updatedFields[key as keyof ResidentFetch] = residentData[key as keyof ResidentFetch];
+      }
+    }
+
+    function toStringArray(value: unknown): string[] {
+      if (Array.isArray(value)) return value;
+      if (typeof value === 'string' && value.trim() !== '') {
+        return value.split(',').map((s) => s.trim());
+      }
+      return [];
+    }
+
+    if ('primaryDiagnosis' in updatedFields) {
+      updatedFields.primaryDiagnosis = JSON.stringify(
+        toStringArray(updatedFields.primaryDiagnosis)
+      );
+    }
+    if ('allergies' in updatedFields) {
+      updatedFields.allergies = JSON.stringify(toStringArray(updatedFields.allergies));
+    }
+
+    if (Object.keys(updatedFields).length === 0) {
+      res.status(200).json({ message: 'No changes detected.' });
+      return;
+    }
+    const editedClient = await updateResidentById(
+      req.app.get('db'),
+      Number(clientId),
+      updatedFields
+    );
+    res.status(200).json({ message: 'Successfully updated', resident: editedClient });
+  } catch (err: any) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error(err.message || 'Error deleting resident', 500);
+    }
     return next(new AppError(err.message || 'Unknown error occurred while deleting resident', 500));
   }
 }
