@@ -1,10 +1,10 @@
-import knex, { Knex } from 'knex';
+import { Knex } from "knex";
 import {
   ResidentDbInsert,
   ResidentDbRow,
   ResidentFetch,
   ResidentInsert,
-} from './interfaces/resident.interface.js';
+} from "./interfaces/resident.interface.js";
 
 /**
  * Convert a DB value that might be:
@@ -20,7 +20,7 @@ function parseAsStringArray(value: any): string[] {
   // pg-jsonb already gives back a JS array
   if (Array.isArray(value)) return value.map(String);
 
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     // Try JSON first
     try {
       const parsed = JSON.parse(value);
@@ -29,7 +29,7 @@ function parseAsStringArray(value: any): string[] {
       /* not JSON – fall through */
     }
     // Treat as CSV
-    return value.split(',').map((s) => s.trim());
+    return value.split(",").map((s) => s.trim());
   }
 
   // Fallback for any other unexpected type
@@ -40,7 +40,7 @@ export async function addResident(
   knex: Knex,
   residentData: ResidentDbInsert | ResidentDbInsert[]
 ): Promise<ResidentFetch | ResidentFetch[]> {
-  const rows = await knex('residents').insert(residentData).returning('*');
+  const rows = await knex("residents").insert(residentData).returning("*");
   return Array.isArray(residentData) ? rows : rows[0];
 }
 
@@ -49,10 +49,10 @@ export async function updateResidentById(
   clientId: number,
   updates: Partial<ResidentDbInsert>
 ): Promise<ResidentFetch> {
-  const [raw] = await knex<ResidentDbRow>('residents')
+  const [raw] = await knex<ResidentDbRow>("residents")
     .where({ id: clientId })
     .update(updates)
-    .returning('*');
+    .returning("*");
 
   return {
     ...raw,
@@ -67,31 +67,35 @@ export async function findResident(
   lastName: string,
   dateOfBirth: string
 ): Promise<ResidentFetch | undefined> {
-  return knex<ResidentFetch>('residents').where({ firstName, lastName, dateOfBirth }).first();
+  return knex<ResidentFetch>("residents")
+    .where({ firstName, lastName, dateOfBirth })
+    .first();
 }
 
 export async function findResidentById(
   knex: Knex,
   clientId: number
 ): Promise<ResidentFetch | undefined> {
-  return knex<ResidentFetch>('residents').where({ id: clientId }).first();
+  return knex<ResidentFetch>("residents").where({ id: clientId }).first();
 }
 
 export async function findResidentByHome(
   knex: Knex,
   homeId: number
 ): Promise<ResidentFetch[] | []> {
-  return knex<ResidentFetch>('residents').where({ groupHomeId: homeId }).select('*');
+  return knex<ResidentFetch>("residents")
+    .where({ groupHomeId: homeId })
+    .select("*");
 }
 
 export async function deleteClient(
   knex: Knex,
   clientId: number
 ): Promise<ResidentFetch | undefined> {
-  const [deletedResident] = await knex<ResidentFetch>('residents')
+  const [deletedResident] = await knex<ResidentFetch>("residents")
     .where({ id: clientId })
     .del()
-    .returning('*');
+    .returning("*");
 
   return deletedResident;
 }
