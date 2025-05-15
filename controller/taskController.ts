@@ -4,6 +4,7 @@ import {
   editTask,
   findTaskByGroupHome,
   findTaskById,
+  deleteTask,
 } from "../models/taskModel.js";
 import { AppError } from "../utils/appError.js";
 import { Task, TaskInsert } from "../models/interfaces/task.interface.js";
@@ -133,6 +134,45 @@ export async function getTaskBYHome(
     }
     return next(
       new AppError(error.message || "an error occured while getting tasks", 500)
+    );
+    //TODO:log error to a logging system
+  }
+}
+
+export async function deleteTaskById(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { id } = req.params;
+  if (!id) {
+    return next(new AppError("Task ID is required to delete task", 400));
+  }
+
+  const taskId = Number(id);
+  if (isNaN(taskId)) {
+    return next(new AppError("Invalid task ID", 400));
+  }
+
+  try {
+    const taskToDelete = await deleteTask(taskId, req.app.get("db"));
+    if (!taskToDelete) {
+      return next(new AppError("Task not found", 404));
+    }
+
+    res.status(200).json({
+      message: "Task deleted successfully",
+      task: taskToDelete,
+    });
+  } catch (error: any) {
+    if (process.env.NODE_ENV !== "production") {
+      console.log("unable to delete task", error.message);
+    }
+    return next(
+      new AppError(
+        error.message || "An error occurred while deleting the task",
+        500
+      )
     );
     //TODO:log error to a logging system
   }
