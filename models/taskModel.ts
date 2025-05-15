@@ -46,3 +46,20 @@ export async function editTask(
 
   return updated[0];
 }
+
+export async function deleteTask(id: number, knex: Knex): Promise<Task> {
+  if (!id) {
+    throw new Error("Task ID is required");
+  }
+
+  const TaskToDelete = await knex("tasks")
+    .where({ id })
+    .delete()
+    .returning("*");
+
+  if (TaskToDelete.length === 0) {
+    throw new Error(`Task with id ${id} not found`);
+  }
+
+  return TaskToDelete[0];
+}
