@@ -5,9 +5,11 @@ import {
   findTaskByGroupHome,
   findTaskById,
   deleteTask,
+  addCompletedTask,
+  fetchTodayCompletedTasks,
 } from '../models/taskModel.js';
 import { AppError } from '../utils/appError.js';
-import { Task, TaskInsert } from '../models/interfaces/task.interface.js';
+import { CompletedTask, Task, TaskInsert } from '../models/interfaces/task.interface.js';
 
 /**
  * Controller to handle task creation requests.
@@ -87,6 +89,18 @@ export async function editTaskData(req: Request, res: Response, next: NextFuncti
   }
 }
 
+/**
+ * Retrieve all tasks that belong to a specific group_home.
+ *
+ * Route param:
+ *   - `homeId` _the numeric ID of the group home whose tasks you want.
+ *
+ * Response Codes
+ *   200 _Returns an array of tasks.
+ *   400 _`homeId` is missing or not a number.
+ *   404 _No tasks found for that group home.
+ *   500 _Unexpected server/database error.
+ */
 export async function getTaskBYHome(req: Request, res: Response, next: NextFunction) {
   const { homeId } = req.params;
 
@@ -114,6 +128,18 @@ export async function getTaskBYHome(req: Request, res: Response, next: NextFunct
   }
 }
 
+/**
+ * Permanently delete a task by its primary_key ID.
+ *
+ * Route param:
+ *   - `id` _task ID to delete.
+ *
+ * Response Codes
+ *   200 _Task deleted, returns the deleted row.
+ *   400 _Missing or invalid ID.
+ *   404 _Task not found.
+ *   500 _Unexpected server/database error.
+ */
 export async function deleteTaskById(req: Request, res: Response, next: NextFunction) {
   const { id } = req.params;
   if (!id) {
@@ -144,4 +170,75 @@ export async function deleteTaskById(req: Request, res: Response, next: NextFunc
   }
 }
 
+/**
+ * Save one or many completed‑task records.
+ *
+ * The request body may contain a single `CompletedTask` object or an array
+ * of them.  Each object must minimally include:
+ *   - `taskId`         – FK reference to the template task
+ *   - `groupHomeId`    – FK for fast filtering
+ *   - `completedAt`    – ISO timestamp of completion
+ *   - `completedBy`    – staff ID
+ *
+ * Route: `POST /api/completed-tasks`
+ *
+ * Response codes
+ *   201 – All rows inserted; returns the saved rows.
+ *   400 – Body missing or empty.
+ *   500 – Database/unknown failure.
+ *
+ * @param req  Express request – completed‑task payload in `req.body`.
+ * @param res  Express response – returns `201` with inserted rows.
+ * @param next Express next – forwards `AppError` on validation/db errors.
+ */
+export async function processCompletedTask(req: Request, res: Response, next: NextFunction) {
+  const taskData: CompletedTask | CompletedTask[] = req.body;
+
+  if (!taskData || (Array.isArray(taskData) && taskData.length === 0)) {
+    return next(new AppError('Completed-task data is required', 400));
+  }
+
+  try {
+    const saved = await addCompletedTask(taskData, req.app.get('db'));
+
+    res.status(201).json({
+      message: 'Completed task(s) saved',
+      tasks: saved,
+    });
+  } catch (err: any) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Unable to save completed tasks:', err.message);
+    }
+    next(new AppError(err.message || 'Error occurred while saving completed tasks', 500));
+  }
+}
+
+export async function getTodaysCompletedTasks(req: Request, res: Response, next: NextFunction) {
+  const { homeId } = req.params;
+  try {
+    const taskData = await fetchTodayCompletedTasks(req.app.get('db'), Number(homeId));
+    if (!taskData) {
+      return next(new AppError('No completed task found for this home', 404));
+    }
+    res.status(200).json({ message: 'success', tasks: taskData });
+  } catch (error: any) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error("unable to get today'sCompletedTasks", error.message);
+    }
+    //TODO:log to a logging service
+    return next(new AppError("could not find today'sCompletedTasks", 500));
+  }
+}
+
+/**
+ * Mark a task as completed (future implementation).
+ *
+ * Intended behaviour:
+ *   1. Validate task ID in params.
+ *   2. Update the tasks `status` to `"completed"` and set `completedAt`.
+ *
+ * Currently a stub implement in the future.
+ *
+ * @todo Implement database update logic.
+ */
 export async function markTaskAsCompleted(req: Request, res: Response, next: NextFunction) {}
