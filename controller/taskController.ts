@@ -198,8 +198,25 @@ export async function processCompletedTask(req: Request, res: Response, next: Ne
     return next(new AppError('Completed-task data is required', 400));
   }
 
+  // Normalize: ensure every payload row has a valid taskId
+  const normalized: CompletedTask[] = (Array.isArray(taskData) ? taskData : [taskData]).map(
+    (row) => {
+      if (!row.taskId && (row as any).id) {
+        // Fall back to `id` if it was mistakenly sent
+        row.taskId = (row as any).id;
+        delete (row as any).id;
+      }
+
+      if (!row.taskId) {
+        throw new AppError('taskId is required for each completed-task record', 400);
+      }
+
+      return row;
+    }
+  );
+
   try {
-    const saved = await addCompletedTask(taskData, req.app.get('db'));
+    const saved = await addCompletedTask(normalized, req.app.get('db'));
 
     res.status(201).json({
       message: 'Completed task(s) saved',

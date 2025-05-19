@@ -69,7 +69,14 @@ export async function deleteTask(id: number, knex: Knex): Promise<Task> {
 export async function addCompletedTask(
   taskData: CompletedTask | CompletedTask[],
   knex: Knex
-): Promise<Task[]> {
-  const rows = await knex('completedTasks').insert(taskData).returning('*');
+): Promise<CompletedTask[]> {
+  // Always work with an array
+  const dataArray = Array.isArray(taskData) ? taskData : [taskData];
+
+  // Strip any accidental `id` coming from the client – DB generates it
+  const sanitized = dataArray.map(({ id, ...rest }) => rest);
+
+  const rows = await knex('completedTasks').insert(sanitized).returning('*');
+
   return rows;
 }
