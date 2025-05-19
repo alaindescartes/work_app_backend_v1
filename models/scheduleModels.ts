@@ -20,9 +20,9 @@ export async function addScheduleModel(
   const rows = Array.isArray(schedules) ? schedules : [schedules];
 
   // Map camelCase TS objects to DB column names + defaults
-  const rowsToInsert = rows.map(s => ({
-    resident_id: s.residentId,
-    group_home_id: s.groupHomeId,
+  const rowsToInsert = rows.map((s) => ({
+    residentId: s.residentId,
+    groupHomeId: s.groupHomeId,
     title: s.title,
     description: s.description,
     start_time: s.start_time,
