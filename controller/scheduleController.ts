@@ -1,7 +1,11 @@
 import { AppError } from '../utils/appError.js';
 import { Request, Response, NextFunction } from 'express';
 import { Schedule, ScheduleInsert } from '../models/interfaces/schedule.js';
-import { addScheduleModel, getScheduleByHomeModel } from '../models/scheduleModels.js';
+import {
+  addScheduleModel,
+  changeScheduleStatusModel,
+  getScheduleByHomeModel,
+} from '../models/scheduleModels.js';
 
 /**
  * Add one or multiple schedules to the database.
@@ -65,5 +69,38 @@ export async function getSchedulesByHome(req: Request, res: Response, next: Next
       console.error('could not get schedules', err);
     }
     return next(new AppError(err.message || 'Error while fetching schedules', 500));
+  }
+}
+
+export async function markScheduleAsCompletedOrCancelled(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { staffId, id } = req.params;
+
+  const { status } = req.body;
+
+  if (!id || !staffId) return next(new AppError('Missing id or staffId', 400));
+  if (!['completed', 'canceled'].includes(status))
+    return next(new AppError('Status must be "completed" or "canceled"', 400));
+
+  try {
+    const updated = await changeScheduleStatusModel(
+      req.app.get('db'),
+      Number(id),
+      Number(staffId),
+      status as 'completed' | 'canceled'
+    );
+
+    if (!updated) return next(new AppError('Schedule not found', 404));
+
+    res.status(200).json({
+      message: `Schedule marked ${status}`,
+      schedule: updated,
+    });
+  } catch (err: any) {
+    if (process.env.NODE_ENV !== 'production') console.error(err);
+    next(new AppError(err.message || 'Error updating schedule', 500));
   }
 }

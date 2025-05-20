@@ -63,3 +63,27 @@ export async function getScheduleByHomeModel(homeId: number, knex: Knex): Promis
 
   return rows;
 }
+
+export async function changeScheduleStatusModel(
+  knex: Knex,
+  id: number,
+  staffId: number,
+  status: 'completed' | 'canceled'
+): Promise<Schedule> {
+  if (!id) throw new Error('No schedule ID provided');
+
+  const [updated] = await knex<Schedule>('schedules')
+    .where({ id })
+    .update(
+      {
+        status,
+        updated_at: knex.fn.now(),
+        completed_at: status === 'completed' ? knex.fn.now() : null,
+        completed_by: staffId,
+      },
+      '*'
+    );
+
+  if (!updated) throw new Error(`Schedule ${id} not found`);
+  return updated;
+}
