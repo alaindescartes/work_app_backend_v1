@@ -14,7 +14,7 @@ import taskRoutes from './routes/taskRoutes.js';
 import scheduleRoutes from './routes/scheduleRoutes.js';
 
 const app = express();
-const port = process.env.PORT || 5001;
+const port = process.env.PORT || 3001;
 dotenv.config();
 
 app.use(express.json());
