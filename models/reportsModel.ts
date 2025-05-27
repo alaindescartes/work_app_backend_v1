@@ -23,7 +23,7 @@ export async function getIncidentReportsModel(
   });
 }
 
-export async function getIncidentReportById(
+export async function getIncidentReportByIdModel(
   knex: Knex,
   id: number
 ): Promise<IncidentReportFetch | undefined> {

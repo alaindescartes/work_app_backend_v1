@@ -4,7 +4,11 @@ import {
   IncidentReportFetch,
   IncidentReportInsert,
 } from '../models/interfaces/incidentReport.interface.js';
-import { addIncidentReport, getIncidentReportsModel } from '../models/reportsModel.js';
+import {
+  addIncidentReport,
+  getIncidentReportByIdModel,
+  getIncidentReportsModel,
+} from '../models/reportsModel.js';
 
 export async function insertIncidentReport(req: Request, res: Response, next: NextFunction) {
   const report: IncidentReportInsert = req.body;
@@ -28,5 +32,17 @@ export async function getIncidentReports(req: Request, res: Response, next: Next
     res.status(200).json({ reports: reports });
   } catch (err: any) {
     return next(new AppError(err.message || 'Error while fetching reports', 500));
+  }
+}
+
+export async function getIncidentReportById(req: Request, res: Response, next: NextFunction) {
+  const { id } = req.params;
+  if (!id) return next(new AppError('Provide valid id', 400));
+  try {
+    const report = await getIncidentReportByIdModel(req.app.get('db'), Number(id));
+    if (!report) return next(new AppError('Could not get report', 400));
+    res.status(200).json({ report: report });
+  } catch (err: any) {
+    return next(new AppError(err.message || 'Error while fetching report', 500));
   }
 }
