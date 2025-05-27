@@ -4,9 +4,24 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('incident_reports', table => {
     // Primary & foreign keys
     table.string('id').primary();
-    table.string('groupHomeId').notNullable().references('id').inTable('group_homes');
-    table.string('residentId').notNullable().references('id').inTable('residents');
-    table.string('staffId').notNullable().references('staffId').inTable('staffs');
+    table
+      .integer('groupHomeId')
+      .notNullable()
+      .references('id')
+      .inTable('group_homes')
+      .onDelete('CASCADE');
+    table
+      .integer('residentId')
+      .notNullable()
+      .references('id')
+      .inTable('residents')
+      .onDelete('CASCADE');
+    table
+      .integer('staffId')
+      .notNullable()
+      .references('staffId')
+      .inTable('staff')
+      .onDelete('CASCADE');
 
     // Core incident details
     table.dateTime('incidentDateTime').notNullable();
