@@ -5,23 +5,36 @@ import {
 } from './interfaces/incidentReport.interface.js';
 
 // ------------------Incident Reports Section---------------------------------------
-export async function getIncidentReports(knex: Knex): Promise<IncidentReportFetch[]> {
-  const rows = await knex('incident_reports').select('*').orderBy('id', 'desc');
-  return rows.map((r: any) => ({
-    ...r,
-    witnesses: r.witnessesJson ? JSON.parse(r.witnessesJson) : [],
-  }));
+export async function getIncidentReportsModel(
+  knex: Knex,
+  groupHomeId: number
+): Promise<IncidentReportFetch[]> {
+  const rows = await knex('incident_reports')
+    .select('*')
+    .where({ groupHomeId })
+    .orderBy('id', 'desc');
+
+  return rows.map((r: any) => {
+    const raw = r.witnessesJson ?? [];
+    const witnesses =
+      typeof raw === 'string' ? (JSON.parse(raw) as IncidentReportFetch['witnesses']) : raw;
+
+    return { ...r, witnesses };
+  });
 }
+
 export async function getIncidentReportById(
   knex: Knex,
   id: number
 ): Promise<IncidentReportFetch | undefined> {
   const row = await knex('incident_reports').where({ id }).first();
   if (!row) return undefined;
-  return {
-    ...row,
-    witnesses: row.witnessesJson ? JSON.parse(row.witnessesJson) : [],
-  };
+
+  const raw = row.witnessesJson ?? [];
+  const witnesses =
+    typeof raw === 'string' ? (JSON.parse(raw) as IncidentReportFetch['witnesses']) : raw;
+
+  return { ...row, witnesses };
 }
 export async function addIncidentReport(
   knex: Knex,
