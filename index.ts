@@ -12,6 +12,7 @@ import groupHomeRoutes from './routes/grouphomeRoutes.js';
 import dotenv from 'dotenv';
 import taskRoutes from './routes/taskRoutes.js';
 import scheduleRoutes from './routes/scheduleRoutes.js';
+import reportRoutes from './routes/reportsRoute.js';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -52,6 +53,7 @@ app.use('/api/grouphome-route', groupHomeRoutes);
 app.use('/api/task-route', taskRoutes);
 app.use('/api/staff-route', staffRoutes);
 app.use('/api/schedule-route', scheduleRoutes);
+app.use('/api/reports', reportRoutes);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
