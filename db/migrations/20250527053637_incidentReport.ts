@@ -1,7 +1,7 @@
 import type { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
-  await knex.schema.createTable('incident_reports', table => {
+  await knex.schema.createTable('incident_reports', (table) => {
     // Primary & foreign keys
     table.string('id').primary();
     table
@@ -36,7 +36,7 @@ export async function up(knex: Knex): Promise<void> {
     table.text('nearMissDescription');
     table.text('immediateActions');
 
-    // Follow‑up & workflow
+    // Follow‑up and workflow
     table.boolean('followUpRequired').notNullable().defaultTo(false);
     table.date('followUpDueDate');
     table.dateTime('followUpCompletedAt');
