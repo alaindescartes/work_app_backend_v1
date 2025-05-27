@@ -123,5 +123,29 @@ export type IncidentReportInsert = Omit<
   severityLevel: 'Minor' | 'Moderate' | 'Severe' | 'Critical';
   description: string;
   followUpRequired: boolean;
-  workflowStatus: 'Draft';
+  workflowStatus: 'Draft' | 'Submitted' | 'InReview' | 'Closed';
+};
+
+/**
+ * Fields a supervisor is permitted to add / update.
+ * Everything is optional because updates are PATCH-style.
+ */
+type SupervisorEditable = Pick<
+  IncidentReportInterface,
+  | 'workflowStatus'
+  | 'supervisorReviewedAt'
+  | 'supervisorNotes'
+  | 'correctiveActions'
+  | 'followUpRequired'
+  | 'followUpDueDate'
+  | 'followUpCompletedAt'
+>;
+
+/**
+ * Payload shape for PUT/PATCH requests coming *from* a supervisor UI.
+ * • Only supervisor-editable keys are allowed.
+ * • The row’s `id` must be supplied so the backend knows which report to update.
+ */
+export type IncidentReportSupervisorUpdate = Partial<SupervisorEditable> & {
+  id: number; // ← DB primary key (integer)
 };

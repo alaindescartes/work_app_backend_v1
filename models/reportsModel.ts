@@ -2,6 +2,7 @@ import { Knex } from 'knex';
 import {
   IncidentReportFetch,
   IncidentReportInsert,
+  IncidentReportSupervisorUpdate,
 } from './interfaces/incidentReport.interface.js';
 
 // ------------------Incident Reports Section---------------------------------------
@@ -43,9 +44,54 @@ export async function addIncidentReport(
   // Strip out `witnesses` and convert to JSON column.
   const { witnesses = [], ...rest } = incidentReport as any;
   const insertData = { ...rest, witnessesJson: JSON.stringify(witnesses) };
+  // Convert blank date/time strings ("") to null so Postgres accepts them
+  const dateFields = [
+    'incidentDateTime',
+    'medicationScheduledDateTime',
+    'pharmacistConversationTime',
+    'notificationTime',
+    'reportDate',
+  ] as const;
+
+  for (const f of dateFields) {
+    if ((insertData as any)[f] === '') {
+      (insertData as any)[f] = null;
+    }
+  }
   const [row] = await knex('incident_reports').insert(insertData).returning('*');
   return {
     ...row,
     witnesses,
   };
+}
+export async function updateReportModel(
+  knex: Knex,
+  id: number,
+  updates: IncidentReportSupervisorUpdate
+): Promise<IncidentReportFetch | undefined> {
+  //Strip out undefined keys (PATCH semantics)
+  const cleanUpdates: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(updates)) {
+    if (v !== undefined) cleanUpdates[k] = v;
+  }
+
+  //Nothing to update → return the current row
+  if (Object.keys(cleanUpdates).length === 0) {
+    return getIncidentReportByIdModel(knex, id);
+  }
+
+  //Ensure the updated_at column is refreshed
+  (cleanUpdates as any).updated_at = knex.fn.now();
+
+  //Perform the update and get the new row
+  const [row] = await knex('incident_reports').where({ id }).update(cleanUpdates).returning('*');
+
+  if (!row) return undefined;
+
+  // Parse witnessesJson exactly like the fetch helpers
+  const raw = row.witnessesJson ?? [];
+  const witnesses =
+    typeof raw === 'string' ? (JSON.parse(raw) as IncidentReportFetch['witnesses']) : raw;
+
+  return { ...row, witnesses };
 }

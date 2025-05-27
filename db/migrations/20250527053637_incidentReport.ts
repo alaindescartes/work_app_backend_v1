@@ -27,7 +27,7 @@ export async function up(knex: Knex): Promise<void> {
     table.dateTime('incidentDateTime').notNullable();
     table.string('incidentType').notNullable();
     table.string('severityLevel').notNullable();
-    table.string('workflowStatus').notNullable();
+    table.string('workflowStatus').notNullable().defaultTo('InReview');
 
     // Narrative descriptions
     table.text('description').notNullable();
