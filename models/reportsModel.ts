@@ -58,7 +58,30 @@ export async function addIncidentReport(
       (insertData as any)[f] = null;
     }
   }
+
+  // ---------- optional initial follow‑up on insert ----------
+  let initialFollowUpId: number | null = null;
+  if (incidentReport.followUpRequired) {
+    const [fu] = await knex('incident_follow_ups')
+      .insert({
+        incidentId: null, // placeholder, will update after main insert
+        title: 'Initial follow‑up — define corrective action',
+        status: 'Open',
+      })
+      .returning('id');
+    initialFollowUpId = fu.id;
+    (insertData as any).initialFollowUpId = initialFollowUpId;
+  }
+
   const [row] = await knex('incident_reports').insert(insertData).returning('*');
+
+  // if we created a follow‑up before the incident existed, patch its incidentId now
+  if (initialFollowUpId) {
+    await knex('incident_follow_ups')
+      .where({ id: initialFollowUpId })
+      .update({ incidentId: row.id });
+  }
+
   return {
     ...row,
     witnesses,
@@ -73,6 +96,23 @@ export async function updateReportModel(
   const cleanUpdates: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(updates)) {
     if (v !== undefined) cleanUpdates[k] = v;
+  }
+
+  // ---------- create initial follow‑up if needed ----------
+  // We need to know the current state before the update
+  const currentRow = await getIncidentReportByIdModel(knex, id);
+  if (currentRow && currentRow.followUpRequired === false && updates.followUpRequired === true) {
+    // 1) Insert a follow‑up task
+    const [fu] = await knex('incident_follow_ups')
+      .insert({
+        incidentId: id,
+        title: 'Initial follow‑up — define corrective action',
+        status: 'Open',
+      })
+      .returning('id');
+
+    // 2) Store its id in the incident row
+    cleanUpdates.initialFollowUpId = fu.id;
   }
 
   //Nothing to update → return the current row
