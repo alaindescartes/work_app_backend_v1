@@ -31,8 +31,7 @@ export interface IncidentReportInterface {
   nearMissDescription?: string;
   immediateActions?: string;
 
-  followUpDueDate?: string; // YYYY‑MM‑DD
-  followUpCompletedAt?: string; // ISO‑8601
+  initialFollowUpId?: number; // foreign‑key to the first follow‑up row
   supervisorReviewedAt?: string; // ISO‑8601
 
   /* ---------- fall‑specific ---------- */
@@ -137,8 +136,6 @@ type SupervisorEditable = Pick<
   | 'supervisorNotes'
   | 'correctiveActions'
   | 'followUpRequired'
-  | 'followUpDueDate'
-  | 'followUpCompletedAt'
 >;
 
 /**
