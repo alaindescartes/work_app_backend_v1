@@ -11,6 +11,8 @@ import {
   getIncidentReportsModel,
   updateReportModel,
 } from '../models/reportsModel.js';
+import { generatePdfDoc } from '../utils/generatePdfDoc.js';
+import { renderReportHtml } from '../utils/renderReportHtml.js';
 
 export async function insertIncidentReport(req: Request, res: Response, next: NextFunction) {
   const report: IncidentReportInsert = req.body;
@@ -61,5 +63,24 @@ export async function editIncidentReport(req: Request, res: Response, next: Next
     res.status(201).json({ report: updatedReport });
   } catch (err: any) {
     return next(new AppError(err.message || 'Error while adding report', 500));
+  }
+}
+
+export async function makePdf(req: Request, res: Response, next: NextFunction) {
+  const { id } = req.params;
+  if (!id) return next(new AppError('Provide valid id', 400));
+  try {
+    const report = await getIncidentReportByIdModel(req.app.get('db'), Number(id));
+    if (!report) return next(new AppError('Could not get report', 400));
+    const html = await renderReportHtml(report); // ← uses the .hbs internally
+    const pdf = await generatePdfDoc(html, `incident-${id}.pdf`);
+    res
+      .set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="incident-${id}.pdf"`,
+      })
+      .send(pdf);
+  } catch (err: any) {
+    return next(new AppError(err.message || 'Error while makePdf', 500));
   }
 }

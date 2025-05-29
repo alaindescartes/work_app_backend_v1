@@ -1,0 +1,177 @@
+<h1>Incident Report #{{id}}</h1>
+
+<div class="section">
+  <h2>Core Details</h2>
+  <p><span class="label">Date&nbsp;&amp;&nbsp;Time:</span> {{incidentDateTime}}</p>
+  <p><span class="label">Incident Type:</span> {{incidentType}}</p>
+  <p><span class="label">Severity:</span> {{severityLevel}}</p>
+  <p><span class="label">Workflow Status:</span> {{workflowStatus}}</p>
+  <p><span class="label">Group Home:</span> {{groupHomeId}}</p>
+  <p><span class="label">Resident ID:</span> {{residentId}}</p>
+  <p><span class="label">Staff ID:</span> {{staffId}}</p>
+</div>
+
+<div class="section">
+  <h2>Description</h2>
+  <p>{{description}}</p>
+</div>
+
+{{#if preIncidentContext}}
+<div class="section">
+  <h3>Pre‑Incident Context</h3>
+  <p>{{preIncidentContext}}</p>
+</div>
+{{/if}}
+
+{{#if postIncidentContext}}
+<div class="section">
+  <h3>Post‑Incident Context</h3>
+  <p>{{postIncidentContext}}</p>
+</div>
+{{/if}}
+
+{{#if nearMissDescription}}
+<div class="section">
+  <h3>Near‑Miss Description</h3>
+  <p>{{nearMissDescription}}</p>
+</div>
+{{/if}}
+
+{{#if immediateActions}}
+<div class="section">
+  <h3>Immediate Actions</h3>
+  <p>{{immediateActions}}</p>
+</div>
+{{/if}}
+
+<!-- Follow‑up / Workflow -->
+{{#if followUpRequired}}
+<div class="section">
+  <h2>Follow‑Up</h2>
+  <p><span class="label">Follow‑Up Required:</span> {{followUpRequired}}</p>
+  {{#if followUpDueDate}}
+  <p><span class="label">Due Date:</span> {{followUpDueDate}}</p>
+  {{/if}}
+  {{#if followUpCompletedAt}}
+  <p><span class="label">Completed At:</span> {{followUpCompletedAt}}</p>
+  {{/if}}
+</div>
+{{/if}}
+
+<!-- Fall Specific -->
+{{#if fallLocation}}
+<div class="section">
+  <h2>Fall Details</h2>
+  <p><span class="label">Location:</span> {{fallLocation}}</p>
+  <p><span class="label">Witnessed:</span> {{fallWitnessed}}</p>
+  <p><span class="label">Previous Fall:</span> {{previousFall}}</p>
+  <p><span class="label">Injuries Sustained:</span> {{injuriesSustained}}</p>
+  {{#if injuriesDescription}}
+    <p><span class="label">Injuries Description:</span> {{injuriesDescription}}</p>
+  {{/if}}
+  <p><span class="label">First Aid Provided:</span> {{firstAidProvided}}</p>
+  {{#if firstAidDetails}}
+    <p><span class="label">First Aid Details:</span> {{firstAidDetails}}</p>
+  {{/if}}
+  <p><span class="label">Emergency Services Contacted:</span> {{emergencyServicesContacted}}</p>
+  <p><span class="label">Mobility Aids In Use:</span> {{mobilityAidsInUse}}</p>
+  <p><span class="label">Proper Footwear:</span> {{properFootwear}}</p>
+  {{#if fallContributingFactors}}
+    <p><span class="label">Contributing Factors:</span> {{fallContributingFactors}}</p>
+  {{/if}}
+</div>
+{{/if}}
+
+<!-- Medication Incident -->
+{{#if medicationIncidentType}}
+<div class="section">
+  <h2>Medication Incident</h2>
+  <p><span class="label">Scheduled&nbsp;Date&nbsp;&amp;&nbsp;Time:</span> {{medicationScheduledDateTime}}</p>
+  <p><span class="label">Incident Type:</span> {{medicationIncidentType}}</p>
+  {{#if medicationIncidentDescription}}
+    <p><span class="label">Description:</span> {{medicationIncidentDescription}}</p>
+  {{/if}}
+  <p><span class="label">Client Received Medication:</span> {{clientReceivedMedication}}</p>
+  {{#if pharmacistName}}
+    <p><span class="label">Pharmacist Name:</span> {{pharmacistName}}</p>
+    <p><span class="label">Conversation Time:</span> {{pharmacistConversationTime}}</p>
+    <p><span class="label">Instructions:</span> {{pharmacistInstructions}}</p>
+  {{/if}}
+</div>
+{{/if}}
+
+<!-- Notifications -->
+<div class="section">
+  <h2>Notifications</h2>
+  <p><span class="label">Emergency Services Notified:</span> {{emergencyServicesNotified}}</p>
+  <p><span class="label">Family/Guardian Notified:</span> {{familyGuardianNotified}}</p>
+  <p><span class="label">Site Supervisor Notified:</span> {{siteSupervisorNotified}}</p>
+  <p><span class="label">On‑Call Supervisor Notified:</span> {{onCallSupervisorNotified}}</p>
+  <p><span class="label">Crisis Team Notified:</span> {{crisisTeamNotified}}</p>
+  <p><span class="label">Emergency Contact Notified:</span> {{emergencyContactNotified}}</p>
+
+  {{#if emergencyServiceType}}
+    <p><span class="label">Service Type:</span> {{emergencyServiceType}}</p>
+    <p><span class="label">Responder Name:</span> {{emergencyServiceResponderName}}</p>
+    <p><span class="label">Badge #:</span> {{emergencyServiceBadgeNumber}}</p>
+    <p><span class="label">File #:</span> {{emergencyServiceFileNumber}}</p>
+  {{/if}}
+
+  {{#if notificationName}}
+    <p><span class="label">Person Spoken To:</span> {{notificationName}}</p>
+    <p><span class="label">Time:</span> {{notificationTime}}</p>
+    <p><span class="label">Notes:</span> {{notificationNotes}}</p>
+  {{/if}}
+</div>
+
+<!-- Witnesses -->
+{{#if witnesses.length}}
+<div class="section">
+  <h2>Witnesses</h2>
+  <ul>
+    {{#each witnesses}}
+      <li>
+        <span class="label">Name:</span> {{this.name}} |
+        <span class="label">Contact:</span> {{this.contact}}<br />
+        <span class="label">Statement:</span> {{this.statement}}
+      </li>
+    {{/each}}
+  </ul>
+</div>
+{{/if}}
+
+<!-- Supervisor Review -->
+{{#if supervisorReviewedAt}}
+<div class="section">
+  <h2>Supervisor Review</h2>
+  <p><span class="label">Reviewed At:</span> {{supervisorReviewedAt}}</p>
+  <p><span class="label">Follow‑Up Required:</span> {{followUpRequired}}</p>
+  {{#if supervisorNotes}}
+    <p><span class="label">Notes:</span> {{supervisorNotes}}</p>
+  {{/if}}
+  {{#if correctiveActions}}
+    <p><span class="label">Corrective Actions:</span> {{correctiveActions}}</p>
+  {{/if}}
+</div>
+{{/if}}
+
+<!-- Staff Sign‑off -->
+{{#if staffName}}
+<div class="section">
+  <h2>Staff Sign‑Off</h2>
+  <p><span class="label">Name:</span> {{staffName}}</p>
+  <p><span class="label">Position:</span> {{staffPosition}}</p>
+  <p><span class="label">Report Date:</span> {{reportDate}}</p>
+</div>
+{{/if}}
+
+<!-- Audit Trail -->
+<div class="section">
+  <h2>Audit Trail</h2>
+  <p><span class="label">Created At:</span> {{createdAt}}</p>
+  <p><span class="label">Updated At:</span> {{updatedAt}}</p>
+</div>
+
+<footer>
+  <p>Generated on {{createdOn}}</p>
+</footer>
