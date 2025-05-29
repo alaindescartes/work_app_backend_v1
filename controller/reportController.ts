@@ -7,6 +7,8 @@ import {
 } from '../models/interfaces/incidentReport.interface.js';
 import {
   addIncidentReport,
+  editFollowUpModel,
+  getIncidentFollowUpByIdModel,
   getIncidentReportByIdModel,
   getIncidentReportsModel,
   updateReportModel,
@@ -15,6 +17,7 @@ import { generatePdfDoc } from '../utils/generatePdfDoc.js';
 import { renderReportHtml } from '../utils/renderReportHtml.js';
 import { getStaffById } from '../models/staffModel.js';
 import { findResidentById } from '../models/residentModel.js';
+import { IncidentFollowUpInsert } from '../models/interfaces/incident-followUps.interface.js';
 
 export async function insertIncidentReport(req: Request, res: Response, next: NextFunction) {
   const report: IncidentReportInsert = req.body;
@@ -99,5 +102,36 @@ export async function makePdf(req: Request, res: Response, next: NextFunction) {
       .send(pdf);
   } catch (err: any) {
     return next(new AppError(err.message || 'Error while makePdf', 500));
+  }
+}
+export async function getFollowUps(req: Request, res: Response, next: NextFunction) {
+  const { id } = req.params;
+  if (!id) return next(new AppError('Provide valid id', 400));
+  try {
+    const followUp = await getIncidentFollowUpByIdModel(req.app.get('db'), Number(id));
+    if (!followUp) return next(new AppError('Could not get follow up report', 400));
+    res.status(200).json({ followUp: followUp });
+  } catch (err: any) {
+    return next(new AppError(err.message || 'Error while fetching follow up report', 500));
+  }
+}
+export async function updateFollowUp(req: Request, res: Response, next: NextFunction) {
+  const { id } = req.params;
+  const followUp: IncidentFollowUpInsert = req.body;
+  if (!id) {
+    return next(new AppError('Provide valid id', 400));
+  }
+  try {
+    // Merge the PATCH fields with the required primary‑key
+    const updated = await editFollowUpModel(req.app.get('db'), {
+      id: Number(id),
+      ...followUp,
+    });
+    if (!updated) {
+      return next(new AppError('Could not update follow‑up', 400));
+    }
+    res.status(200).json({ followUp: updated });
+  } catch (e: any) {
+    return next(new AppError(e.message || 'Error while updating follow up report', 500));
   }
 }

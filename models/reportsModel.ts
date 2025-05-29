@@ -4,6 +4,10 @@ import {
   IncidentReportInsert,
   IncidentReportSupervisorUpdate,
 } from './interfaces/incidentReport.interface.js';
+import {
+  IncidentFollowUpFetch,
+  IncidentFollowUpInsert,
+} from './interfaces/incident-followUps.interface.js';
 
 // ------------------Incident Reports Section---------------------------------------
 export async function getIncidentReportsModel(
@@ -134,4 +138,65 @@ export async function updateReportModel(
     typeof raw === 'string' ? (JSON.parse(raw) as IncidentReportFetch['witnesses']) : raw;
 
   return { ...row, witnesses };
+}
+
+/**
+ * Retrieve a single follow‑up task by the primary key.
+ * Returns `undefined` if the id does not exist.
+ */
+export async function getIncidentFollowUpByIdModel(
+  knex: Knex,
+  id: number
+): Promise<IncidentFollowUpFetch | undefined> {
+  const row = await knex<IncidentFollowUpFetch>('incident_follow_ups').where({ id }).first();
+
+  return row ?? undefined;
+}
+/**
+ * Update an existing follow‑up row.
+ * • `data` must contain the primary‑key `id` and any fields to patch.
+ * • Returns the fully updated row.
+ */
+export async function editFollowUpModel(
+  knex: Knex,
+  data: IncidentFollowUpInsert & { id: number }
+): Promise<IncidentFollowUpFetch> {
+  const { id, ...rest } = data as any;
+  if (!id) {
+    throw new Error('editFollowUpModel requires an id property');
+  }
+
+  // Strip undefined (PATCH semantics)
+  const updates: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(rest)) {
+    if (v !== undefined) updates[k] = v;
+  }
+
+  // Convert blank dates to null so Postgres accepts them
+  const dateFields = ['dueDate', 'completedAt'] as const;
+  for (const f of dateFields) {
+    if ((updates as any)[f] === '') {
+      (updates as any)[f] = null;
+    }
+  }
+
+  // No changes → return current row
+  if (Object.keys(updates).length === 0) {
+    const current = await knex<IncidentFollowUpFetch>('incident_follow_ups').where({ id }).first();
+    if (!current) throw new Error(`Follow‑up #${id} not found`);
+    return current;
+  }
+
+  // Touch updated_at
+  (updates as any).updated_at = knex.fn.now();
+
+  const [row] = await knex<IncidentFollowUpFetch>('incident_follow_ups')
+    .where({ id })
+    .update(updates)
+    .returning('*');
+
+  if (!row) {
+    throw new Error(`Follow‑up #${id} not found`);
+  }
+  return row;
 }
