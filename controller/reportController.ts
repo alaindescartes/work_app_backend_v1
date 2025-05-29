@@ -13,6 +13,8 @@ import {
 } from '../models/reportsModel.js';
 import { generatePdfDoc } from '../utils/generatePdfDoc.js';
 import { renderReportHtml } from '../utils/renderReportHtml.js';
+import { getStaffById } from '../models/staffModel.js';
+import { findResidentById } from '../models/residentModel.js';
 
 export async function insertIncidentReport(req: Request, res: Response, next: NextFunction) {
   const report: IncidentReportInsert = req.body;
@@ -72,7 +74,22 @@ export async function makePdf(req: Request, res: Response, next: NextFunction) {
   try {
     const report = await getIncidentReportByIdModel(req.app.get('db'), Number(id));
     if (!report) return next(new AppError('Could not get report', 400));
-    const html = await renderReportHtml(report); // ← uses the .hbs internally
+
+    const [staff, resident] = await Promise.all([
+      getStaffById(req.app.get('db'), Number(report.staffId)),
+      findResidentById(req.app.get('db'), Number(report.residentId)),
+    ]);
+
+    if (!staff)
+      return next(new AppError(`Staff record #${report.staffId} not found – PDF aborted`, 404));
+    if (!resident)
+      return next(
+        new AppError(`Resident record #${report.residentId} not found – PDF aborted`, 404)
+      );
+
+    const staffName = `${staff.firstName} ${staff.lastName}`;
+    const residentName = `${resident.firstName} ${resident.lastName}`;
+    const html = await renderReportHtml(report, residentName, staffName);
     const pdf = await generatePdfDoc(html, `incident-${id}.pdf`);
     res
       .set({

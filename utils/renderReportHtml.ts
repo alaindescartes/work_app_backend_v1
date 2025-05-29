@@ -9,12 +9,40 @@ interface AnyRecord {
   [key: string]: unknown;
 }
 
+// Date formatting helpers
+const dateFmt = new Intl.DateTimeFormat('en-GB', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+});
+const dateTimeFmt = new Intl.DateTimeFormat('en-GB', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+function formatIfDate(str: string): string {
+  // YYYY‑MM‑DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const d = new Date(str + 'T00:00:00');
+    return dateFmt.format(d);
+  }
+  // ISO‑8601 timestamp
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(str)) {
+    return dateTimeFmt.format(new Date(str));
+  }
+  return str;
+}
+
 /**
  * Convert undefined / null / empty values to `"None"`,
  * booleans to **Yes/No**, and leave everything else as-is.
  */
 function normaliseValue(v: unknown): unknown {
   if (v === undefined || v === null || (typeof v === 'string' && v.trim() === '')) return 'None';
+  if (typeof v === 'string') return formatIfDate(v);
   if (typeof v === 'boolean') return v ? 'Yes' : 'No';
   if (Array.isArray(v) && v.length === 0) return 'None';
   return v;
@@ -28,13 +56,19 @@ function normaliseReport(report: IncidentReportFetch): AnyRecord {
   return out;
 }
 
-export async function renderReportHtml(report: IncidentReportFetch): Promise<string> {
+export async function renderReportHtml(
+  report: IncidentReportFetch,
+  residentName: string,
+  staffName: string
+): Promise<string> {
   const templatePath = path.join(process.cwd(), 'templates', 'incidentReport.hbs');
   const templateSrc = await fs.readFile(templatePath, 'utf-8');
   const template = handlebars.compile(templateSrc);
 
   const html = template({
     ...normaliseReport(report),
+    residentName,
+    staffName,
     createdOn: new Date().toLocaleString(),
   });
 
