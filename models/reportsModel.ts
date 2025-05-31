@@ -68,9 +68,10 @@ export async function addIncidentReport(
   if (incidentReport.followUpRequired) {
     const [fu] = await knex('incident_follow_ups')
       .insert({
-        incidentId: null, // placeholder, will update after main insert
+        incidentId: null, // placeholder will patch later
         title: 'Initial follow‑up — define corrective action',
         status: 'Open',
+        dueDate: knex.raw("now() + interval '3 days'"), // due in 3 days
       })
       .returning('id');
     initialFollowUpId = fu.id;
@@ -112,6 +113,7 @@ export async function updateReportModel(
         incidentId: id,
         title: 'Initial follow‑up — define corrective action',
         status: 'Open',
+        dueDate: knex.raw("now() + interval '3 days'"), // due in 3 days
       })
       .returning('id');
 
@@ -151,6 +153,22 @@ export async function getIncidentFollowUpByIdModel(
   const row = await knex<IncidentFollowUpFetch>('incident_follow_ups').where({ id }).first();
 
   return row ?? undefined;
+}
+
+/**
+ * Retrieve **all** follow‑up tasks belonging to a given group‑home.
+ */
+export async function getIncidentFollowUpModel(
+  knex: Knex,
+  homeId: number
+): Promise<IncidentFollowUpFetch[]> {
+  const rows = await knex<IncidentFollowUpFetch>('incident_follow_ups as f')
+    .join('incident_reports as r', 'r.id', 'f.incidentId')
+    .where('r.groupHomeId', homeId)
+    .select('f.*')
+    .orderBy('f.id', 'desc');
+
+  return rows;
 }
 /**
  * Update an existing follow‑up row.

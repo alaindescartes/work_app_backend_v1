@@ -9,6 +9,7 @@ import {
   addIncidentReport,
   editFollowUpModel,
   getIncidentFollowUpByIdModel,
+  getIncidentFollowUpModel,
   getIncidentReportByIdModel,
   getIncidentReportsModel,
   updateReportModel,
@@ -133,5 +134,16 @@ export async function updateFollowUp(req: Request, res: Response, next: NextFunc
     res.status(200).json({ followUp: updated });
   } catch (e: any) {
     return next(new AppError(e.message || 'Error while updating follow up report', 500));
+  }
+}
+
+export async function getAllFollowUps(req: Request, res: Response, next: NextFunction) {
+  const { homeId } = req.params;
+  try {
+    const followUps = await getIncidentFollowUpModel(req.app.get('db'), Number(homeId));
+    if (!followUps) return next(new AppError('Could not get follow up report', 400));
+    res.status(200).json({ followUps: followUps });
+  } catch (e: any) {
+    return next(new AppError(e.message || 'Error while fetching follow up reports', 500));
   }
 }
