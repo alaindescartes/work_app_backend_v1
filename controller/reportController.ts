@@ -12,6 +12,7 @@ import {
   getIncidentFollowUpModel,
   getIncidentReportByIdModel,
   getIncidentReportsModel,
+  modifyWorkFlowStatusIncidentReportModel,
   updateReportModel,
 } from '../models/reportsModel.js';
 import { generatePdfDoc } from '../utils/generatePdfDoc.js';
@@ -145,5 +146,30 @@ export async function getAllFollowUps(req: Request, res: Response, next: NextFun
     res.status(200).json({ followUps: followUps });
   } catch (e: any) {
     return next(new AppError(e.message || 'Error while fetching follow up reports', 500));
+  }
+}
+
+export async function editWorkFlowStatus(req: Request, res: Response, next: NextFunction) {
+  const { id } = req.params;
+  const { status }: { status: 'Draft' | 'Submitted' | 'InReview' | 'Closed' } = req.body;
+
+  if (!id || !status) {
+    return next(new AppError('Provide valid id or status', 400));
+  }
+  try {
+    const editedReport = await modifyWorkFlowStatusIncidentReportModel(
+      req.app.get('db'),
+      Number(id),
+      status
+    );
+    if (!editedReport) {
+      return next(new AppError('Could not edit report status', 400));
+    }
+    res.status(200).json({
+      message: `Report status edited successfully`,
+      report: editedReport,
+    });
+  } catch (e: any) {
+    return next(new AppError(e.message || 'Error while editing report status', 500));
   }
 }

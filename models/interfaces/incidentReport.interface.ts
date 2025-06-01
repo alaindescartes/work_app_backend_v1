@@ -25,7 +25,7 @@ export interface IncidentReportInterface {
   workflowStatus: 'Draft' | 'Submitted' | 'InReview' | 'Closed';
 
   /* ---------- generic fields ---------- */
-  id?: string; // DB‑generated UUID
+  id?: number; // DB‑generated UUID
   preIncidentContext?: string;
   postIncidentContext?: string;
   nearMissDescription?: string;
@@ -91,7 +91,7 @@ export interface IncidentReportInterface {
 
   /* ---------- audit‑trail fields ---------- */
   createdAt?: string;
-  updatedAt?: string;
+  updated_at?: string;
 }
 
 /**

@@ -218,3 +218,23 @@ export async function editFollowUpModel(
   }
   return row;
 }
+
+export async function modifyWorkFlowStatusIncidentReportModel(
+  knex: Knex,
+  id: number,
+  status: 'Draft' | 'Submitted' | 'InReview' | 'Closed'
+): Promise<IncidentReportFetch> {
+  const rows = await knex<IncidentReportFetch>('incident_reports').where({ id }).update(
+    {
+      workflowStatus: status,
+      updated_at: knex.fn.now(),
+    },
+    ['*']
+  );
+
+  const row = rows[0];
+  if (!row) {
+    throw new Error(`Incident report #${id} not found`);
+  }
+  return row;
+}

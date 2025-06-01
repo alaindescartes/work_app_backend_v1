@@ -2,6 +2,7 @@ import express from 'express';
 import checkAuth, { checkRole } from '../utils/checkAuth.js';
 import {
   editIncidentReport,
+  editWorkFlowStatus,
   getAllFollowUps,
   getFollowUps,
   getIncidentReportById,
@@ -19,4 +20,5 @@ router.get('/get-pdf/:id', checkAuth, checkRole, makePdf);
 router.get('/follow-up/:id', checkAuth, checkRole, getFollowUps);
 router.get('/getAll-follow-up/:homeId', checkAuth, checkRole, getAllFollowUps);
 router.patch('/edit-follow-up/:id', checkAuth, checkRole, updateFollowUp);
+router.post('/edit-workFlow/:id', checkAuth, checkRole, editWorkFlowStatus);
 export default router;
