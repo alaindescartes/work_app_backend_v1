@@ -119,8 +119,6 @@ export async function getFollowUps(req: Request, res: Response, next: NextFuncti
 export async function updateFollowUp(req: Request, res: Response, next: NextFunction) {
   const { id } = req.params;
   const followUp: IncidentFollowUpInsert = req.body;
-  console.log('received', followUp);
-  console.log('id', id);
   if (!id) {
     return next(new AppError('Provide valid id', 400));
   }
