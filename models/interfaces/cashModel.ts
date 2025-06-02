@@ -20,7 +20,7 @@ export async function addAllowanceModel(
   data: CashAllowanceInsert,
   systemUserId: number = 0
 ): Promise<CashAllowanceFetch> {
-  return await knex.transaction(async trx => {
+  return await knex.transaction(async (trx) => {
     /* 1️⃣  create allowance row */
     const [allowance] = await trx<CashAllowanceFetch>('cash_allowances')
       .insert({
@@ -84,7 +84,7 @@ export async function findOpenAllowance(knex: Knex, residentId: number) {
   return knex('cash_allowances')
     .where({ resident_id: residentId })
     .andWhere('period_start', '<=', today)
-    .andWhere(builder => builder.whereNull('period_end').orWhere('period_end', '>=', today))
+    .andWhere((builder) => builder.whereNull('period_end').orWhere('period_end', '>=', today))
     .orderBy('period_start', 'desc')
     .first();
 }
@@ -93,7 +93,7 @@ export async function addCashCountModel(
   knex: Knex,
   data: CashCountInsert
 ): Promise<CashCountFetch> {
-  return await knex.transaction(async trx => {
+  return await knex.transaction(async (trx) => {
     // running balance (Σ all transactions up to now)
     const balanceRow = await trx('cash_transactions')
       .where({ resident_id: data.resident_id })
@@ -131,34 +131,46 @@ export async function addCashCountModel(
  *   …
  * ]
  */
-export async function getHomeCashCounts(knex: Knex, homeId: number, latestOnly = true) {
-  if (!latestOnly) {
-    // fallback: return all counts (same as your getAllCashCountsForHome)
-    return knex('cash_counts as c')
-      .join('residents as r', 'r.id', 'c.resident_id')
-      .where('r.groupHomeId', homeId)
-      .orderBy(['r.lastName', { column: 'c.counted_at', order: 'desc' }]);
-  }
-
-  // 1) sub-query: latest count per resident using DISTINCT ON
-  const latestPerResident = knex
-    .select(knex.raw('DISTINCT ON (resident_id) *'))
-    .from('cash_counts')
-    .orderBy([
-      'resident_id',
-      { column: 'counted_at', order: 'desc' }, // keep newest row
-    ])
-    .as('lc');
-
-  // 2) join with residents in the home
-  return knex('residents as r')
-    .leftJoin(latestPerResident, 'lc.resident_id', 'r.id')
+/**
+ * Return **all** cash‑count rows for residents in a given group‑home,
+ * limited to the current (or supplied) calendar month.
+ *
+ * Each row is *flattened* and already contains:
+ *  ─ resident_id, firstName, lastName
+ *  ─ balance_cents, diff_cents, is_mismatch, counted_at
+ *  ─ staffFirstName, staffLastName
+ *
+ * @param knex       – configured Knex instance
+ * @param homeId     – FK to group_homes.id
+ * @param monthToken – optional "YYYY-MM" filter (defaults to this month)
+ */
+export async function getHomeCashCounts(
+  knex: Knex,
+  homeId: number,
+  monthToken: string = new Date().toISOString().slice(0, 7) // "YYYY-MM"
+) {
+  return knex('cash_counts as c')
+    .join('residents as r', 'r.id', 'c.resident_id')
+    .leftJoin('staff as s', 's.staffId', 'c.staff_id')
     .where('r.groupHomeId', homeId)
-    .orderBy('r.lastName', 'asc')
+    .andWhereRaw("to_char(c.counted_at AT TIME ZONE 'America/Edmonton', 'YYYY-MM') = ?", [
+      monthToken,
+    ])
+    .orderBy([
+      { column: 'r.lastName', order: 'asc' },
+      { column: 'c.counted_at', order: 'desc' },
+    ])
     .select(
-      'r.id as resident_id',
+      'c.id',
+      'c.resident_id',
       'r.firstName',
       'r.lastName',
-      knex.raw('to_jsonb(lc.*) as latest_count')
+      'c.balance_cents',
+      'c.diff_cents',
+      'c.is_mismatch',
+      knex.raw(`c.counted_at AT TIME ZONE 'America/Edmonton' as counted_at`),
+      's.firstName as staffFirstName',
+      's.lastName  as staffLastName',
+      'c.staff_id'
     );
 }
