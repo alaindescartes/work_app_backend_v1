@@ -99,7 +99,7 @@ export async function getLogsModel(
  * @param id   – primary key of the log row
  * @returns    ShiftLogFetch object or throws if not found
  */
-export async function getLogById(knex: Knex, id: number): Promise<ShiftLogFetch> {
+export async function getLogByIdModel(knex: Knex, id: number): Promise<ShiftLogFetch> {
   const row = await knex('shift_logs as l')
     .leftJoin('staff as s', 's.staffId', 'l.staff_id')
     .where('l.id', id)

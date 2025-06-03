@@ -1,7 +1,7 @@
 import { AppError } from '../utils/appError.js';
 import { Request, Response, NextFunction } from 'express';
 import { ShiftLogFetch, ShiftLogInsert } from '../models/interfaces/shiftLog.interface.js';
-import { addLogModel, getLogsModel } from '../models/shiftLogsModel.js';
+import { addLogModel, getLogByIdModel, getLogsModel } from '../models/shiftLogsModel.js';
 
 export async function getLogs(req: Request, res: Response, next: NextFunction): Promise<void> {
   const { homeId } = req.params;
@@ -28,6 +28,23 @@ export async function getLogs(req: Request, res: Response, next: NextFunction): 
     res.status(200).json({ data: logs });
   } catch (err: any) {
     next(new AppError(err.message || 'could not get logs', 500));
+  }
+}
+
+export async function getLogById(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const { logId } = req.params;
+  const id = Number(logId);
+  if (!Number.isFinite(id) || id <= 0) {
+    return next(new AppError('homeId must be a positive number', 400));
+  }
+  try {
+    const log = await getLogByIdModel(req.app.get('db'), id);
+    if (!log) {
+      return next(new AppError(`could not get log with ${id}`, 400));
+    }
+    res.status(200).json({ log: log });
+  } catch (err: any) {
+    next(new AppError(err.message || 'could not get log', 500));
   }
 }
 
