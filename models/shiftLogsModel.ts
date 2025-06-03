@@ -61,6 +61,11 @@ export async function getLogsModel(
   homeId: number,
   isoDate?: string
 ): Promise<ShiftLogFetch[]> {
+  // If isoDate not supplied, default to today (YYYY-MM-DD) in America/Edmonton
+  if (!isoDate) {
+    isoDate = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Edmonton' }).slice(0, 10);
+  }
+
   const query = knex('shift_logs as l')
     .leftJoin('staff as s', 's.staffId', 'l.staff_id')
     .where('l.home_id', homeId)
@@ -79,12 +84,10 @@ export async function getLogsModel(
       'l.note',
     ]);
 
-  if (isoDate) {
-    // filter logs so that their shift_start calendar day matches isoDate in Edmonton zone
-    query.andWhereRaw("to_char(l.shift_start AT TIME ZONE 'America/Edmonton', 'YYYY-MM-DD') = ?", [
-      isoDate.slice(0, 10),
-    ]);
-  }
+  // filter logs so that their shift_start calendar day matches isoDate in Edmonton zone
+  query.andWhereRaw("to_char(l.shift_start AT TIME ZONE 'America/Edmonton', 'YYYY-MM-DD') = ?", [
+    isoDate,
+  ]);
 
   return await query;
 }

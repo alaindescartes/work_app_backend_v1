@@ -1,9 +1,36 @@
 import { AppError } from '../utils/appError.js';
 import { Request, Response, NextFunction } from 'express';
 import { ShiftLogFetch, ShiftLogInsert } from '../models/interfaces/shiftLog.interface.js';
-import { addLogModel } from '../models/shiftLogsModel.js';
+import { addLogModel, getLogsModel } from '../models/shiftLogsModel.js';
 
-export async function getLogs(req: Request, res: Response, next: NextFunction): Promise<void> {}
+export async function getLogs(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const { homeId } = req.params;
+  const dateParam = typeof req.query.date === 'string' ? req.query.date : undefined;
+
+  /* ───────────── validate homeId ───────────── */
+  const id = Number(homeId);
+  if (!Number.isFinite(id) || id <= 0) {
+    return next(new AppError('homeId must be a positive number', 400));
+  }
+
+  /* optional date (YYYY-MM-DD) */
+  let date: string | undefined;
+  if (dateParam) {
+    // basic YYYY-MM-DD sanity check
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      return next(new AppError('date must be in YYYY-MM-DD format', 400));
+    }
+    date = dateParam;
+  }
+
+  try {
+    const logs = await getLogsModel(req.app.get('db'), id, date);
+    res.status(200).json({ data: logs });
+  } catch (err: any) {
+    next(new AppError(err.message || 'could not get logs', 500));
+  }
+}
+
 export async function addLog(req: Request, res: Response, next: NextFunction): Promise<void> {
   const log: ShiftLogInsert = req.body;
 
