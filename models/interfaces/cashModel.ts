@@ -20,7 +20,7 @@ export async function addAllowanceModel(
   data: CashAllowanceInsert,
   systemUserId: number = 0
 ): Promise<CashAllowanceFetch> {
-  return await knex.transaction(async (trx) => {
+  return await knex.transaction(async trx => {
     /* 1️⃣  create allowance row */
     const [allowance] = await trx<CashAllowanceFetch>('cash_allowances')
       .insert({
@@ -50,6 +50,83 @@ export async function addAllowanceModel(
 
     return allowance;
   });
+}
+
+/**
+ * Return a full finance summary for one resident.
+ *   ─ latestCashCount: newest row in cash_counts (or null)
+ *   ─ runningBalance_cents: Σ cash_transactions.amount_cents
+ *   ─ openAllowance: current allowance row, if any
+ *   ─ transactions: all transactions for the given month (default = this month, MDT)
+ *
+ * @param knex        – configured Knex instance
+ * @param residentId  – PK of the resident
+ * @param monthToken  – optional "YYYY-MM" string; default is current month
+ */
+export async function getResidentFinanceSummary(
+  knex: Knex,
+  residentId: number,
+  monthToken: string = new Date().toISOString().slice(0, 7) // "YYYY-MM"
+) {
+  /* ---------- resident basic info ----------------------------------- */
+  const resident = await knex('residents')
+    .where({ id: residentId })
+    .first('id', 'firstName', 'lastName', 'groupHomeId');
+
+  if (!resident) throw new Error('Resident not found');
+
+  /* ---------- latest cash‑count ------------------------------------- */
+  const latestCashCount = await knex('cash_counts as c')
+    .leftJoin('staff as s', 's.staffId', 'c.staff_id')
+    .where('c.resident_id', residentId)
+    .orderBy('c.counted_at', 'desc')
+    .first(
+      'c.id',
+      'c.balance_cents',
+      knex.raw(`c.counted_at AT TIME ZONE 'America/Edmonton' as counted_at`),
+      'c.staff_id',
+      's.firstName as staffFirstName',
+      's.lastName  as staffLastName',
+      'c.is_mismatch',
+      'c.diff_cents'
+    );
+
+  /* ---------- running balance --------------------------------------- */
+  const sumRow = await knex('cash_transactions')
+    .where({ resident_id: residentId })
+    .sum<{ running: string | null }>('amount_cents as running')
+    .first();
+
+  const runningBalance_cents = Number(sumRow?.running) || 0;
+
+  /* ---------- open allowance (if any) -------------------------------- */
+  const openAllowance = await findOpenAllowance(knex, residentId);
+
+  /* ---------- transactions for monthToken --------------------------- */
+  const transactions = await knex('cash_transactions as t')
+    .leftJoin('staff as s', 's.staffId', 't.entered_by')
+    .where('t.resident_id', residentId)
+    .andWhereRaw("to_char(t.created_at AT TIME ZONE 'America/Edmonton', 'YYYY-MM') = ?", [
+      monthToken,
+    ])
+    .orderBy('t.created_at', 'desc')
+    .select(
+      't.id',
+      't.amount_cents',
+      't.reason',
+      't.entered_by',
+      's.firstName as staffFirstName',
+      's.lastName  as staffLastName',
+      knex.raw(`t.created_at AT TIME ZONE 'America/Edmonton' as created_at`)
+    );
+
+  return {
+    resident,
+    latestCashCount: latestCashCount ?? null,
+    runningBalance_cents,
+    openAllowance,
+    transactions,
+  };
 }
 /**
  * Record a **withdrawal**, **deposit**, or **correction** in the ledger.
@@ -84,7 +161,7 @@ export async function findOpenAllowance(knex: Knex, residentId: number) {
   return knex('cash_allowances')
     .where({ resident_id: residentId })
     .andWhere('period_start', '<=', today)
-    .andWhere((builder) => builder.whereNull('period_end').orWhere('period_end', '>=', today))
+    .andWhere(builder => builder.whereNull('period_end').orWhere('period_end', '>=', today))
     .orderBy('period_start', 'desc')
     .first();
 }
@@ -93,7 +170,7 @@ export async function addCashCountModel(
   knex: Knex,
   data: CashCountInsert
 ): Promise<CashCountFetch> {
-  return await knex.transaction(async (trx) => {
+  return await knex.transaction(async trx => {
     // running balance (Σ all transactions up to now)
     const balanceRow = await trx('cash_transactions')
       .where({ resident_id: data.resident_id })
