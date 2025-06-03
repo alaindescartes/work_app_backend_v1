@@ -6,6 +6,7 @@ import {
   cashTransaction,
   getCashCountByHome,
   getDetailedClientFinanceSummary,
+  makeTransactionPdf,
 } from '../controller/financeController.js';
 const router = express.Router();
 router.get('/get-cashCount-by-home/:homeId', checkAuth, getCashCountByHome);
@@ -13,5 +14,6 @@ router.post('/add-cashCount', checkAuth, addCashCount);
 router.post('/add-allowance/:supervisorId', checkAuth, addAllowance);
 router.post('/cash-transaction', checkAuth, cashTransaction);
 router.get('/client-financial-summary/:resId', checkAuth, getDetailedClientFinanceSummary);
+router.get('/transaction-pdf/:resId', checkAuth, makeTransactionPdf);
 
 export default router;

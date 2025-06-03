@@ -1,6 +1,37 @@
 import handlebars from 'handlebars';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
+/* ---------- Handlebars helpers (currency, date, comparison) ---------- */
+handlebars.registerHelper('formatCurrency', (cents: number) =>
+  (cents / 100).toLocaleString('en-CA', {
+    style: 'currency',
+    currency: 'CAD',
+    minimumFractionDigits: 2,
+  })
+);
+
+handlebars.registerHelper('formatDate', (iso: string) =>
+  new Date(iso).toLocaleString('en-CA', {
+    timeZone: 'America/Edmonton',
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+);
+
+handlebars.registerHelper('formatDateISO', (iso: string) =>
+  new Date(iso).toLocaleDateString('en-CA', {
+    timeZone: 'America/Edmonton',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+);
+
+handlebars.registerHelper('lt', (a: number, b: number) => a < b);
 /* ---------- Types for finance summary ---------- */
 export interface Transaction {
   id: number;
