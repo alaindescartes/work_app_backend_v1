@@ -1,0 +1,66 @@
+<!-- transactionSummary.hbs -->
+<section class="tx-report">
+  <!-- Header -->
+  <header class="tx-header">
+    <h1 class="tx-title">Cash Report — {{monthName}}</h1>
+    <p class="tx-resident">
+      Resident: <strong>{{resident.firstName}} {{resident.lastName}}</strong>
+      (ID&nbsp;{{resident.id}}) — Group&nbsp;Home&nbsp;#{{resident.groupHomeId}}
+    </p>
+  </header>
+
+  <!-- At‑a‑glance summary -->
+  <table class="tx-summary">
+    <tr>
+      <th>Current&nbsp;Balance</th>
+      <td>{{formatCurrency runningBalance_cents}}</td>
+    </tr>
+
+    {{#if openAllowance}}
+      <tr>
+        <th>Open&nbsp;Allowance</th>
+        <td>
+          {{formatCurrency openAllowance.amount_cents}}
+          &nbsp;(
+          {{openAllowance.period_start}}
+          &nbsp;–&nbsp;
+          {{#if openAllowance.period_end}}{{openAllowance.period_end}}{{else}}Present{{/if}}
+          )
+        </td>
+      </tr>
+    {{/if}}
+  </table>
+
+  <!-- Transactions -->
+  <h2 class="tx-section-title">Transactions</h2>
+
+  {{#if transactions.length}}
+    <table class="tx-table">
+      <thead>
+        <tr>
+          <th>Date / Time</th>
+          <th>Reason</th>
+          <th class="txt-right">Amount</th>
+          <th>Staff</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {{#each transactions}}
+          <tr class="{{#if @odd}}even{{else}}odd{{/if}}">
+            <td>{{formatDate created_at}}</td>
+            <td>{{reason}}</td>
+            <td class="txt-right">
+              <span class="{{#if (lt amount_cents 0)}}minus{{else}}plus{{/if}}">
+                {{formatCurrency amount_cents}}
+              </span>
+            </td>
+            <td>{{staffFirstName}} {{staffLastName}}</td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{else}}
+    <p class="tx-empty">No transactions in this period.</p>
+  {{/if}}
+</section>
