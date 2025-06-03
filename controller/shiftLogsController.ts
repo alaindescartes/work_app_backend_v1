@@ -112,6 +112,7 @@ export async function addLog(req: Request, res: Response, next: NextFunction): P
 export async function updateLog(req: Request, res: Response, next: NextFunction): Promise<void> {
   const { logId } = req.params;
   const id = Number(logId);
+  const currentStaffId = req.session.staff?.staffId;
 
   /* ───────────── validate id ───────────── */
   if (!Number.isFinite(id) || id <= 0) {
@@ -144,10 +145,14 @@ export async function updateLog(req: Request, res: Response, next: NextFunction)
 
   try {
     /* ensure the row exists before updating */
-    await getLogByIdModel(req.app.get('db'), id);
+    const existing = await getLogByIdModel(req.app.get('db'), id);
+
+    /* ───────────── ownership check ───────────── */
+    if (existing.staff_id !== currentStaffId) {
+      return next(new AppError('You may edit only your own shift logs', 403));
+    }
 
     const updated = await updateLogModel(req.app.get('db'), id, updates);
-
     res.status(200).json({ success: true, data: updated });
   } catch (err: any) {
     next(new AppError(err.message || 'could not update log', 500));
