@@ -11,6 +11,7 @@ import {
   cashTransactionModel,
   findOpenAllowance,
   getHomeCashCounts,
+  getResidentFinanceSummary,
 } from '../models/interfaces/cashModel.js';
 import { findResidentById } from '../models/residentModel.js';
 
@@ -125,5 +126,30 @@ export async function cashTransaction(req: Request, res: Response, next: NextFun
     res.status(201).json({ transaction: tx });
   } catch (err: any) {
     next(new AppError(err.message || 'Problem occurred while adding cash transaction', 500));
+  }
+}
+
+export async function getDetailedClientFinanceSummary(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { resId } = req.params;
+  console.log(resId);
+  const month = typeof req.query.month === 'string' ? req.query.month : undefined;
+
+  const id = Number(resId);
+  if (!Number.isFinite(id) || id <= 0) {
+    return next(new AppError('residentId must be a positive number', 400));
+  }
+
+  try {
+    const summary = await getResidentFinanceSummary(req.app.get('db'), id, month);
+    if (!summary) {
+      return next(new AppError('No finance summary found for this resident', 404));
+    }
+    res.status(200).json(summary);
+  } catch (err: any) {
+    next(new AppError(err.message || 'Unable to get client finance summary', 500));
   }
 }
