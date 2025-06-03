@@ -14,6 +14,11 @@ import {
   getResidentFinanceSummary,
 } from '../models/interfaces/cashModel.js';
 import { findResidentById } from '../models/residentModel.js';
+import { getIncidentReportByIdModel } from '../models/reportsModel.js';
+import { getStaffById } from '../models/staffModel.js';
+import { renderReportHtml } from '../utils/renderReportHtml.js';
+import { generatePdfDoc } from '../utils/generatePdfDoc.js';
+import { exportTransactionsHtml } from '../utils/renderTransactionSummary.js';
 
 export async function getCashCountByHome(req: Request, res: Response, next: NextFunction) {
   const { homeId } = req.params;
@@ -135,7 +140,6 @@ export async function getDetailedClientFinanceSummary(
   next: NextFunction
 ) {
   const { resId } = req.params;
-  console.log(resId);
   const month = typeof req.query.month === 'string' ? req.query.month : undefined;
 
   const id = Number(resId);
@@ -151,5 +155,40 @@ export async function getDetailedClientFinanceSummary(
     res.status(200).json(summary);
   } catch (err: any) {
     next(new AppError(err.message || 'Unable to get client finance summary', 500));
+  }
+}
+
+export async function makeTransactionPdf(req: Request, res: Response, next: NextFunction) {
+  const { resId } = req.params;
+  const month = typeof req.query.month === 'string' ? req.query.month : undefined;
+
+  const id = Number(resId);
+  if (!Number.isFinite(id) || id <= 0) {
+    return next(new AppError('residentId must be a positive number', 400));
+  }
+
+  try {
+    const summary = await getResidentFinanceSummary(req.app.get('db'), id, month);
+    if (!summary) {
+      return next(new AppError('No finance summary found for this resident', 404));
+    }
+
+    // Generate HTML with the correct month label
+    const html = await exportTransactionsHtml({
+      ...summary,
+      // If month was provided, override monthName inside the template data
+    });
+
+    const fileName = `transactions-${id}.pdf`;
+    const pdf = await generatePdfDoc(html, fileName);
+
+    res
+      .set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${fileName}"`,
+      })
+      .send(pdf);
+  } catch (err: any) {
+    next(new AppError(err.message || 'Error while generating transaction PDF', 500));
   }
 }
