@@ -1,7 +1,12 @@
 import { AppError } from '../utils/appError.js';
 import { Request, Response, NextFunction } from 'express';
 import { ShiftLogFetch, ShiftLogInsert } from '../models/interfaces/shiftLog.interface.js';
-import { addLogModel, getLogByIdModel, getLogsModel } from '../models/shiftLogsModel.js';
+import {
+  addLogModel,
+  getLogByIdModel,
+  getLogsModel,
+  updateLogModel,
+} from '../models/shiftLogsModel.js';
 
 export async function getLogs(req: Request, res: Response, next: NextFunction): Promise<void> {
   const { homeId } = req.params;
@@ -101,5 +106,50 @@ export async function addLog(req: Request, res: Response, next: NextFunction): P
     res.status(201).json({ success: true, data: addedLog });
   } catch (err: any) {
     next(new AppError(err.message || 'could not add shift log', 500));
+  }
+}
+
+export async function updateLog(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const { logId } = req.params;
+  const id = Number(logId);
+
+  /* ───────────── validate id ───────────── */
+  if (!Number.isFinite(id) || id <= 0) {
+    return next(new AppError('logId must be a positive number', 400));
+  }
+
+  const updates = req.body as Partial<ShiftLogInsert>;
+  if (!updates || typeof updates !== 'object') {
+    return next(new AppError('provide a valid updates object', 400));
+  }
+
+  /* ───────────── basic field checks ───────────── */
+  if (updates.note !== undefined && (!updates.note || !updates.note.trim())) {
+    return next(new AppError('note must be a non-empty string', 400));
+  }
+
+  if (updates.shift_start && Number.isNaN(new Date(updates.shift_start).valueOf())) {
+    return next(new AppError('shift_start must be a valid ISO timestamp', 400));
+  }
+  if (updates.shift_end && Number.isNaN(new Date(updates.shift_end).valueOf())) {
+    return next(new AppError('shift_end must be a valid ISO timestamp', 400));
+  }
+  if (
+    updates.shift_start &&
+    updates.shift_end &&
+    new Date(updates.shift_end) <= new Date(updates.shift_start)
+  ) {
+    return next(new AppError('shift_end must be after shift_start', 400));
+  }
+
+  try {
+    /* ensure the row exists before updating */
+    await getLogByIdModel(req.app.get('db'), id);
+
+    const updated = await updateLogModel(req.app.get('db'), id, updates);
+
+    res.status(200).json({ success: true, data: updated });
+  } catch (err: any) {
+    next(new AppError(err.message || 'could not update log', 500));
   }
 }

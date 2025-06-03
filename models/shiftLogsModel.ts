@@ -124,3 +124,34 @@ export async function getLogByIdModel(knex: Knex, id: number): Promise<ShiftLogF
 
   return row;
 }
+
+/**
+ * Update a shift-log row and return the refreshed object with staff names.
+ *
+ * @param knex    – configured Knex instance
+ * @param id      – primary key of the row to update
+ * @param changes – partial fields to update (note, is_critical, shift times, resident_id)
+ * @returns       ShiftLogFetch
+ */
+export async function updateLogModel(
+  knex: Knex,
+  id: number,
+  changes: Partial<ShiftLogInsert>
+): Promise<ShiftLogFetch> {
+  // Prepare payload: remove undefined fields
+  const payload: Record<string, unknown> = {};
+  if (changes.note !== undefined) payload.note = changes.note.trim();
+  if (changes.is_critical !== undefined) payload.is_critical = changes.is_critical;
+  if (changes.shift_start) payload.shift_start = changes.shift_start;
+  if (changes.shift_end) payload.shift_end = changes.shift_end;
+  if (changes.resident_id !== undefined) payload.resident_id = changes.resident_id;
+
+  if (Object.keys(payload).length === 0) {
+    throw new Error('No valid fields provided to update');
+  }
+
+  await knex('shift_logs').where({ id }).update(payload);
+
+  // Return the freshly updated row
+  return await getLogByIdModel(knex, id);
+}
