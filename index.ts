@@ -14,6 +14,7 @@ import taskRoutes from './routes/taskRoutes.js';
 import scheduleRoutes from './routes/scheduleRoutes.js';
 import reportRoutes from './routes/reportsRoute.js';
 import financeRoute from './routes/financeRoute.js';
+import shiftLogsRoute from './routes/shiftLogsRoute.js';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -56,6 +57,7 @@ app.use('/api/staff-route', staffRoutes);
 app.use('/api/schedule-route', scheduleRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/finance', financeRoute);
+app.use('/api/shift-logs', shiftLogsRoute);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
