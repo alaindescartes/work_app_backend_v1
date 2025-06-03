@@ -91,3 +91,36 @@ export async function getLogsModel(
 
   return await query;
 }
+
+/**
+ * Fetch a single shift‑log entry by its primary key.
+ *
+ * @param knex – configured Knex instance
+ * @param id   – primary key of the log row
+ * @returns    ShiftLogFetch object or throws if not found
+ */
+export async function getLogById(knex: Knex, id: number): Promise<ShiftLogFetch> {
+  const row = await knex('shift_logs as l')
+    .leftJoin('staff as s', 's.staffId', 'l.staff_id')
+    .where('l.id', id)
+    .select<ShiftLogFetch[]>([
+      'l.id',
+      'l.home_id',
+      'l.staff_id',
+      's.firstName as staffFirstName',
+      's.lastName as staffLastName',
+      'l.resident_id',
+      knex.raw("l.shift_start AT TIME ZONE 'America/Edmonton' as shift_start"),
+      knex.raw("l.shift_end   AT TIME ZONE 'America/Edmonton' as shift_end"),
+      knex.raw("l.created_at AT TIME ZONE 'America/Edmonton' as created_at"),
+      'l.is_critical',
+      'l.note',
+    ])
+    .first();
+
+  if (!row) {
+    throw new Error(`Shift log #${id} not found`);
+  }
+
+  return row;
+}
