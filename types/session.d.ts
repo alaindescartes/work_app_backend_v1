@@ -4,8 +4,9 @@ import 'express-session';
 declare module 'express-session' {
   interface SessionData {
     staff?: {
-      staffId: number;
-      role?: string;
+      id: number;
+      email: string;
+      role: string;
     };
   }
 }
