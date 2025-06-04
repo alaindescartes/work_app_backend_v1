@@ -10,26 +10,27 @@ import {
 
 export async function getLogs(req: Request, res: Response, next: NextFunction): Promise<void> {
   const { homeId } = req.params;
-  const dateParam = typeof req.query.date === 'string' ? req.query.date : undefined;
 
-  /* ───────────── validate homeId ───────────── */
+  /* validate homeId */
   const id = Number(homeId);
   if (!Number.isFinite(id) || id <= 0) {
     return next(new AppError('homeId must be a positive number', 400));
   }
 
-  /* optional date (YYYY-MM-DD) */
-  let date: string | undefined;
-  if (dateParam) {
-    // basic YYYY-MM-DD sanity check
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
-      return next(new AppError('date must be in YYYY-MM-DD format', 400));
-    }
-    date = dateParam;
+  /* parse optional range */
+  const from = typeof req.query.from === 'string' ? req.query.from : undefined;
+  const to = typeof req.query.to === 'string' ? req.query.to : undefined;
+
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (from && !dateRegex.test(from)) {
+    return next(new AppError('from must be YYYY-MM-DD', 400));
+  }
+  if (to && !dateRegex.test(to)) {
+    return next(new AppError('to must be YYYY-MM-DD', 400));
   }
 
   try {
-    const logs = await getLogsModel(req.app.get('db'), id, date);
+    const logs = await getLogsModel(req.app.get('db'), id, from, to);
     res.status(200).json({ data: logs });
   } catch (err: any) {
     next(new AppError(err.message || 'could not get logs', 500));
@@ -112,7 +113,7 @@ export async function addLog(req: Request, res: Response, next: NextFunction): P
 export async function updateLog(req: Request, res: Response, next: NextFunction): Promise<void> {
   const { logId } = req.params;
   const id = Number(logId);
-  const currentStaffId = req.session.staff?.staffId;
+  const currentStaffId = req.session.staff?.id;
 
   /* ───────────── validate id ───────────── */
   if (!Number.isFinite(id) || id <= 0) {

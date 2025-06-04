@@ -49,21 +49,22 @@ export async function addLogModel(knex: Knex, data: ShiftLogInsert): Promise<Shi
 }
 
 /**
- * Fetch all shift‑log notes for a given home (and optional calendar date).
- *
- * @param knex     – configured Knex instance
- * @param homeId   – FK → group_homes.id
- * @param isoDate  – optional "YYYY‑MM‑DD" string. If provided, only logs whose
- *                   shift_start falls on that day (Edmonton time) are returned.
+ * Fetch logs for a home.  Defaults to *today* (Edmonton) when no date
+ * parameters are supplied.  Accepts an optional range:
+ *   ?from=YYYY-MM-DD&to=YYYY-MM-DD
  */
 export async function getLogsModel(
   knex: Knex,
   homeId: number,
-  isoDate?: string
+  from?: string,
+  to?: string
 ): Promise<ShiftLogFetch[]> {
-  // If isoDate not supplied, default to today (YYYY-MM-DD) in America/Edmonton
-  if (!isoDate) {
-    isoDate = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Edmonton' }).slice(0, 10);
+  /* ── default to today's date in Edmonton ── */
+  if (!from && !to) {
+    const today = new Date().toLocaleDateString('en-CA', {
+      timeZone: 'America/Edmonton',
+    });
+    from = to = today; // single-day filter
   }
 
   const query = knex('shift_logs as l')
@@ -84,12 +85,23 @@ export async function getLogsModel(
       'l.note',
     ]);
 
-  // filter logs so that their shift_start calendar day matches isoDate in Edmonton zone
-  query.andWhereRaw("to_char(l.shift_start AT TIME ZONE 'America/Edmonton', 'YYYY-MM-DD') = ?", [
-    isoDate,
-  ]);
+  /* date filters */
+  if (from && to) {
+    query.andWhereRaw(
+      "to_char(l.shift_start AT TIME ZONE 'America/Edmonton', 'YYYY-MM-DD') BETWEEN ? AND ?",
+      [from.slice(0, 10), to.slice(0, 10)]
+    );
+  } else if (from) {
+    query.andWhereRaw("to_char(l.shift_start AT TIME ZONE 'America/Edmonton', 'YYYY-MM-DD') >= ?", [
+      from.slice(0, 10),
+    ]);
+  } else if (to) {
+    query.andWhereRaw("to_char(l.shift_start AT TIME ZONE 'America/Edmonton', 'YYYY-MM-DD') <= ?", [
+      to.slice(0, 10),
+    ]);
+  }
 
-  return await query;
+  return query;
 }
 
 /**
