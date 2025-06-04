@@ -17,6 +17,13 @@ export async function up(knex: Knex): Promise<void> {
       .references('staffId')
       .inTable('staff')
       .onDelete('SET NULL'); // preserve meal record if staff deleted
+    table
+      .integer('groupHome_id')
+      .notNullable()
+      .references('id')
+      .inTable('group_homes')
+      .onUpdate('CASCADE')
+      .onDelete('SET NULL');
 
     table.text('description').nullable(); // what was served
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
