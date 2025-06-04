@@ -50,7 +50,9 @@ export async function addMealModel(knex: Knex, meal: MealInsert): Promise<MealFe
       knex.raw('m.meal_date::text as meal_date'),
       'm.type',
       'm.description',
-      knex.raw("m.created_at AT TIME ZONE 'America/Edmonton' as created_at"),
+      knex.raw(
+        "to_char(m.created_at AT TIME ZONE 'America/Edmonton', 'YYYY-MM-DD\"T\"HH24:MI:SSOF') as created_at"
+      ),
     ])
     .first();
 
@@ -103,7 +105,9 @@ export async function getMealsModel(
       knex.raw('m.meal_date::text as meal_date'),
       'm.type',
       'm.description',
-      knex.raw("m.created_at AT TIME ZONE 'America/Edmonton' as created_at"),
+      knex.raw(
+        "to_char(m.created_at AT TIME ZONE 'America/Edmonton', 'YYYY-MM-DD\"T\"HH24:MI:SSOF') as created_at"
+      ),
     ]);
 
   /* date filtering */
