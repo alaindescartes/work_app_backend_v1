@@ -113,7 +113,7 @@ export async function addLog(req: Request, res: Response, next: NextFunction): P
 export async function updateLog(req: Request, res: Response, next: NextFunction): Promise<void> {
   const { logId } = req.params;
   const id = Number(logId);
-  const currentStaffId = req.session.staff?.id;
+  const currentStaffId = req.session.staff?.staffId;
 
   /* ───────────── validate id ───────────── */
   if (!Number.isFinite(id) || id <= 0) {
