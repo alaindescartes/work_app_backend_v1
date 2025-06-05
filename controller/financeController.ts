@@ -14,14 +14,13 @@ import {
   getResidentFinanceSummary,
 } from '../models/interfaces/cashModel.js';
 import { findResidentById } from '../models/residentModel.js';
-import { getIncidentReportByIdModel } from '../models/reportsModel.js';
-import { getStaffById } from '../models/staffModel.js';
-import { renderReportHtml } from '../utils/renderReportHtml.js';
 import { generatePdfDoc } from '../utils/generatePdfDoc.js';
 import { exportTransactionsHtml } from '../utils/renderTransactionSummary.js';
 
 export async function getCashCountByHome(req: Request, res: Response, next: NextFunction) {
   const { homeId } = req.params;
+  const date = typeof req.query.date === 'string' ? req.query.date : undefined;
+  console.log(date); // YYYY‑MM or YYYY‑MM‑DD
 
   /* ---------- validate param ---------- */
   const id = Number(homeId);
@@ -30,7 +29,7 @@ export async function getCashCountByHome(req: Request, res: Response, next: Next
   }
 
   try {
-    const counts = await getHomeCashCounts(req.app.get('db'), id);
+    const counts = await getHomeCashCounts(req.app.get('db'), id, date);
     res.status(200).json({ counts });
   } catch (err: any) {
     next(new AppError(err.message || 'There was a problem while retrieving cash counts', 500));

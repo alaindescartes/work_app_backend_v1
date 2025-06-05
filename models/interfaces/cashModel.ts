@@ -20,16 +20,24 @@ export async function addAllowanceModel(
   data: CashAllowanceInsert,
   systemUserId: number = 0
 ): Promise<CashAllowanceFetch> {
-  return await knex.transaction(async trx => {
+  return await knex.transaction(async (trx) => {
     /* 1️⃣  create allowance row */
-    const [allowance] = await trx<CashAllowanceFetch>('cash_allowances')
+    const [allowance] = (await trx('cash_allowances')
       .insert({
         resident_id: data.resident_id,
         period_start: data.period_start,
         period_end: data.period_end ?? null,
         amount_cents: data.amount_cents,
       })
-      .returning('*');
+      .returning([
+        'id',
+        'resident_id',
+        'period_start',
+        'period_end',
+        'amount_cents',
+        knex.raw("created_at AT TIME ZONE 'America/Edmonton' as created_at"),
+        knex.raw("updated_at AT TIME ZONE 'America/Edmonton' as updated_at"),
+      ])) as CashAllowanceFetch[];
 
     /* 2️⃣  credit transaction so funds appear in ledger */
     const credit: CashTransactionInsert = {
@@ -144,7 +152,7 @@ export async function cashTransactionModel(
   if (data.allowance_id == null) {
     throw new Error('cashTransactionModel: allowance_id is required but was null/undefined');
   }
-  const [tx] = await knex<CashTransactionInsert>('cash_transactions')
+  const [tx] = (await knex('cash_transactions')
     .insert({
       resident_id: data.resident_id,
       amount_cents: data.amount_cents,
@@ -152,7 +160,15 @@ export async function cashTransactionModel(
       entered_by: data.entered_by,
       allowance_id: data.allowance_id,
     })
-    .returning('*');
+    .returning([
+      'id',
+      'resident_id',
+      'amount_cents',
+      'reason',
+      'entered_by',
+      'allowance_id',
+      knex.raw("created_at AT TIME ZONE 'America/Edmonton' as created_at"),
+    ])) as CashTransactionInsert[];
   return tx;
 }
 
@@ -161,7 +177,7 @@ export async function findOpenAllowance(knex: Knex, residentId: number) {
   return knex('cash_allowances')
     .where({ resident_id: residentId })
     .andWhere('period_start', '<=', today)
-    .andWhere(builder => builder.whereNull('period_end').orWhere('period_end', '>=', today))
+    .andWhere((builder) => builder.whereNull('period_end').orWhere('period_end', '>=', today))
     .orderBy('period_start', 'desc')
     .first();
 }
@@ -170,7 +186,7 @@ export async function addCashCountModel(
   knex: Knex,
   data: CashCountInsert
 ): Promise<CashCountFetch> {
-  return await knex.transaction(async trx => {
+  return await knex.transaction(async (trx) => {
     // running balance (Σ all transactions up to now)
     const balanceRow = await trx('cash_transactions')
       .where({ resident_id: data.resident_id })
@@ -221,18 +237,26 @@ export async function addCashCountModel(
  * @param homeId     – FK to group_homes.id
  * @param monthToken – optional "YYYY-MM" filter (defaults to this month)
  */
+/**
+ * Get cash counts for a home.
+ * - If `dateToken` is `"YYYY-MM"`, filter by month.
+ * - If `dateToken` is `"YYYY-MM-DD"`, filter by exact day.
+ */
 export async function getHomeCashCounts(
   knex: Knex,
   homeId: number,
-  monthToken: string = new Date().toISOString().slice(0, 7) // "YYYY-MM"
+  dateToken: string = new Date().toISOString().slice(0, 7) // default current month
 ) {
   return knex('cash_counts as c')
     .join('residents as r', 'r.id', 'c.resident_id')
     .leftJoin('staff as s', 's.staffId', 'c.staff_id')
     .where('r.groupHomeId', homeId)
-    .andWhereRaw("to_char(c.counted_at AT TIME ZONE 'America/Edmonton', 'YYYY-MM') = ?", [
-      monthToken,
-    ])
+    .andWhereRaw(
+      `to_char(c.counted_at AT TIME ZONE 'America/Edmonton', ${
+        dateToken.length === 10 ? `'YYYY-MM-DD'` : `'YYYY-MM'`
+      }) = ?`,
+      [dateToken]
+    )
     .orderBy([
       { column: 'r.lastName', order: 'asc' },
       { column: 'c.counted_at', order: 'desc' },
