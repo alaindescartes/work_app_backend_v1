@@ -3,7 +3,7 @@ import { AppError } from './appError.js';
 
 interface StaffSession {
   staff?: {
-    id: number;
+    staffId: number;
     email: string;
     role: string;
   };
