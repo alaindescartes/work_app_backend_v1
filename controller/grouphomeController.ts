@@ -24,7 +24,7 @@ interface newGroupHome {
 export async function addGroupHomeData(req: Request, res: Response, next: NextFunction) {
   try {
     const groupHomeData: newGroupHome = req.body;
-    console.log(groupHomeData);
+
     if (
       !groupHomeData.name ||
       !groupHomeData.address ||
@@ -48,7 +48,7 @@ export async function addGroupHomeData(req: Request, res: Response, next: NextFu
         groupHome.cloudinary_public_id = result.public_id;
         groupHome.image_url = result.secure_url;
       } catch (err) {
-        console.log(err, 'cannot upload the file to cloudinary');
+        return next(new AppError('cannot upload the file to cloudinary', 400));
       }
     }
 
@@ -97,7 +97,6 @@ export async function deleteGroupHome(req: Request, res: Response, next: NextFun
 export async function editGroupHome(req: Request, res: Response, next: NextFunction) {
   const { id } = req.params;
   const edits: newGroupHome = req.body;
-  console.log('received', req.body);
   if (!id) {
     return next(new AppError('can not edit without a valid Id', 400));
   }
@@ -127,9 +126,8 @@ export async function editGroupHome(req: Request, res: Response, next: NextFunct
 
         groupHome.cloudinary_public_id = result.public_id;
         groupHome.image_url = result.secure_url;
-        console.log(result);
       } catch (err) {
-        console.log(err, 'cannot upload the file to cloudinary');
+        return next(new AppError('cannot upload the file to cloudinary', 400));
       }
     }
 
